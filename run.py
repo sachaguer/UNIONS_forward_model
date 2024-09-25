@@ -1,5 +1,6 @@
 import os
 import yaml
+import argparse
 
 import numpy as np
 import healpy as hp
@@ -22,9 +23,14 @@ plt.rcParams.update({
     "figure.dpi": 300  # Adjust as needed
 })
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-c", "--config", help="Path to the configuration file.", type=str, required=True, default='config.yaml')
+
 if __name__ == '__main__':
     # Load the configuration file
-    with open('config.yaml', 'r') as f:
+    args = parser.parse_args()
+    with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
     verbose = config['verbose']
