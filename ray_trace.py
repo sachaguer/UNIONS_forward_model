@@ -54,7 +54,7 @@ def ray_trace_glass(overdensity_array, z_bin_edges, cosmo_params, verbose=False)
     As = cosmo_params["A_s"]
 
     pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
-    lmax = 2*nside #Beyons 2*nside the power spectrum vanishes
+    lmax = 2*nside #Beyond 2*nside the power spectrum vanishes
 
     cosmo = Cosmology.from_camb(pars)
 
@@ -114,8 +114,11 @@ def ray_trace_bornraytrace(overdensity_array, z_bin_edges, cosmo_params, verbose
     pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
     results = camb.get_results(pars)
     comoving_edges = results.comoving_radial_distance(z_bin_edges)
-    z_centre = np.array(
+    """ z_centre = np.array(
         [results.redshift_at_comoving_radial_distance((comoving_edges[i+1] + comoving_edges[i])/2) for i in range(len(z_bin_edges)-1)]
+    ) """
+    z_centre = np.array(
+        [(z_bin_edges[i+1]+z_bin_edges[i])*0.5 for i in range(len(z_bin_edges)-1)]
     )
     comoving_edges = comoving_edges * u.Mpc
 
@@ -131,7 +134,7 @@ def ray_trace_bornraytrace(overdensity_array, z_bin_edges, cosmo_params, verbose
         kappa_lensing[i] = lensing.raytrace(
             100*h[0]*u.km/u.s/u.Mpc, Om,
             overdensity_array = overdensity_array[:i].T,
-            a_centre = 1./(1.+z_centre[:i]),
+            a_centre = 1./(1.+z_bin_edges[1:(i+1)]),
             comoving_edges = comoving_edges[:i+1]
         )
 

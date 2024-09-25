@@ -10,7 +10,7 @@ import glass.shells
 from tqdm import tqdm
 
 from ray_trace import ray_trace, intrinsic_alignments
-from utils import read_cosmo_params, get_path_lightcone, get_path_redshifts, downgrade_lightcone
+from utils import read_cosmo_params, get_path_lightcone, get_path_redshifts, downgrade_lightcone, apply_random_rotation
 
 """
 forward_model.py
@@ -102,7 +102,8 @@ def preprocessing_gower_street(path_sims, path_infos, sim_number, nside, nside_i
 
 def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, verbose=False):
     """
-    Weight a map with a given redshift distribution.
+    Weight a map with a given redshift distribution. For now source clustering is not
+    taken into account.
 
     Parameters
     ----------
@@ -194,42 +195,93 @@ def forward(path_sims, path_infos, sim_name='GowerStreet', add_ia=False, verbose
     gamma_lensing = kappa2shear(kappa_lensing, lmax=lmax, verbose=verbose)
 
     if add_ia:
+        if verbose:
+            print("[!] Adding the intrinsic alignment to the shear maps...")
         A_ia = kwargs.get('A_ia', None)
         eta_ia = kwargs.get('eta_ia', None)
         assert A_ia is not None, "The amplitude of the intrinsic alignment model is not defined."
         assert eta_ia is not None, "The slope of the intrinsic alignment model is not defined."
+        if verbose:
+            print(f"[!] Amplitude of the intrinsic alignment model: {A_ia}")
+            print(f"[!] Slope of the intrinsic alignment model: {eta_ia}")
         kappa_ia = intrinsic_alignments(overdensity_array, z_bin_edges, cosmo_params, A_ia, eta_ia)
 
         gamma_ia = kappa2shear(kappa_ia, lmax=lmax, verbose=verbose)
 
-        if verbose:
-            print("[!] Adding the intrinsic alignment to the shear maps...")
         gamma_lensing += gamma_ia
-    return kappa_lensing, kappa_ia, gamma_lensing
+    else:
+        kappa_ia = None
+        
+    return kappa_lensing, kappa_ia, gamma_lensing, z_bin_edges, cosmo_params
 
-def apply_mask(map_, mask, verbose=False):
+def add_shape_noise(shear_map, ra, dec, e1, e2, w):
     """
-    Apply a mask to a map.
+    Add shape noise to a map.
 
     Parameters
     ----------
-    map_: np.array
-        Healpy map to be masked.
-    mask: np.array
-        Healpy map with the mask.
-    verbose: bool
-        If True, print information about the process.
+    shear_map: np.array
+        Healpy shear map to add shape noise.
+    ra: np.array
+        Right ascension of the observed galaxy catalog.
+    dec: np.array
+        Declination of the observed galaxy catalog.
+    e1: np.array
+        First component of the ellipticity of the observed galaxy catalog.
+    e2: np.array
+        Second component of the ellipticity of the observed galaxy catalog.
+    w: np.array
+        Weights of the observed galaxy.
 
     Returns
     -------
     np.array
-        Masked map.
+        Map with shape noise.
     """
-    if verbose:
-        print("[!] Applying the mask to the map...")
+    nside = hp.npix2nside(len(shear_map))
 
-    map_masked = np.copy(map_)
+    #Computes a map of the weighted number of galaxies in each pixel
+    theta = (90-dec)*np.pi/180
+    phi = ra*np.pi/180
+    pix = hp.ang2pix(nside, theta, phi, nest=False)
 
-    map_masked[mask == 0] = hp.UNSEEN
+    n_map = np.zeros(hp.nside2npix(nside))
 
-    return map_masked
+    #Get a map between pixels in Healpix and galaxies in the galaxy catalog
+    unique_pix, idx, idx_rep = np.unique(pix, return_index=True, return_inverse=True)
+
+    n_map[unique_pix] += np.bincount(idx_rep, weights=w) #weighted number of galaxies per pixel
+
+    #Mask corresponds to pixels with at least one galaxy
+    mask = (n_map != 0)
+
+    #Apply random rotations to e1/2 to erase cosmological signal
+    e1_rot, e2_rot = apply_random_rotation(e1, e2)
+
+    #noise maps
+    noise_map_e1 = np.zeros(hp.nside2npix(nside))
+    noise_map_e2 = np.zeros(hp.nside2npix(nside))
+    #masked shear maps
+    g1_map = np.zeros(hp.nside2npix(nside))
+    g2_map = np.zeros(hp.nside2npix(nside))
+
+    #Compute the noise maps with the randomly rotated galaxies
+    noise_map_e1[unique_pix] += np.bincount(idx_rep, weights=w*e1_rot)
+    noise_map_e2[unique_pix] += np.bincount(idx_rep, weights=w*e2_rot)
+    noise_map_e1[mask] /= n_map[mask]
+    noise_map_e2[mask] /= n_map[mask]
+
+    #Compute the masked shear maps
+    g1_ = shear_map.real[pix] #Project on the pixels where objects are located
+    g2_ = shear_map.imag[pix]
+
+    g1_map[unique_pix] += np.bincount(idx_rep, weights=w*g1_)
+    g2_map[unique_pix] += np.bincount(idx_rep, weights=w*g2_)
+    g1_map[mask] /= n_map[mask]
+    g2_map[mask] /= n_map[mask]
+    #!!!No weighting is applied as for each pixel g1_ is constant contrary to the case of the noise map!!!
+
+    masked_shear_map = g1_map + 1j*g2_map
+    noise_map = noise_map_e1 + 1j*noise_map_e2
+
+    return masked_shear_map, noise_map

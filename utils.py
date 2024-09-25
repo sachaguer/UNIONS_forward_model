@@ -43,6 +43,27 @@ def downgrade_mask(mask, nside_out, verbose=False, threshold=0.5):
         print(f"[!] Done.")
     return mask_down
 
+def apply_mask(map_, mask):
+    """
+    Apply a binary mask to a map.
+
+    Parameters
+    ----------
+    map_ : np.array
+        Healpix map.
+    mask : np.array
+        Healpix mask.
+    
+    Returns
+    -------
+    np.array
+        Masked map.
+    """
+    nside_map = hp.npix2nside(len(map_))
+    nside_mask = hp.npix2nside(len(mask))
+    assert nside_map == nside_mask, "The nside of the map and the mask must be the same."
+    return map_*mask
+
 def sigma8_difference(logAs, cosmo_params):
     """
     Computes the absolue difference between the sigma8 computed with the input As and the
@@ -112,3 +133,27 @@ def get_path_lightcone(path_sims, sim, run):
 def get_path_redshifts(path_sims, sim):
     path = os.path.expanduser(path_sims + "sim{:05d}/".format(sim) + "z_values.txt")
     return os.path.exists(path), path
+
+def apply_random_rotation(e1, e2):
+    """
+    Apply a random rotation to the ellipticity components e1 and e2.
+
+    Parameters
+    ----------
+    e1 : np.array
+        First component of the ellipticity.
+    e2 : np.array
+        Second component of the ellipticity.
+
+    Returns
+    -------
+    np.array
+        First component of the rotated ellipticity.
+    np.array
+        Second component of the rotated ellipticity.
+    """
+    np.random.seed()
+    rot_angle = np.random.rand(len(e1))*2*np.pi
+    e1_out = e1*np.cos(rot_angle) + e2*np.sin(rot_angle)
+    e2_out = -e1*np.sin(rot_angle) + e2*np.cos(rot_angle)
+    return e1_out, e2_out
