@@ -5,6 +5,13 @@ import pandas as pd
 import camb
 from scipy.optimize import minimize_scalar
 
+"""
+utils.py
+Author: Sacha Guerrini
+
+Utility functions to perform the forward model of the UNIONS shear maps.
+"""
+
 def downgrade_lightcone(lightcone, nside_out, verbose=False):
     """
     Downgrade a lightcone to a lower resolution (nside_out < nside_in)
@@ -85,6 +92,18 @@ def sigma8_difference(logAs, cosmo_params):
         H0=cosmo_params["h"]*100,
         ombh2=cosmo_params["Omega_b"]*cosmo_params["h"]**2,
         omch2=(cosmo_params["Omega_m"]-cosmo_params["Omega_b"])*cosmo_params["h"]**2,
+        mnu=cosmo_params["m_nu"],
+        w=cosmo_params["w"],
+        ns=cosmo_params["n_s"],
+        As=np.exp(logAs),
+        WantTransfer=True,
+        NonLinear=camb.model.NonLinear_both
+    )
+    Omc = cosmo_params["Omega_m"]-cosmo_params["Omega_b"] - pars.omeganu
+    pars = camb.set_params(
+        H0=cosmo_params["h"]*100,
+        ombh2=cosmo_params["Omega_b"]*cosmo_params["h"]**2,
+        omch2=Omc*cosmo_params["h"]**2,
         mnu=cosmo_params["m_nu"],
         w=cosmo_params["w"],
         ns=cosmo_params["n_s"],

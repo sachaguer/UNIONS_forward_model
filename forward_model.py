@@ -17,6 +17,7 @@ forward_model.py
 Author: Sacha Guerrini
 
 Script to perform the forward model of the UNIONS shear maps.
+Includes preprocessing function specific to each simulation output.
 """
 
 def preprocessing_gower_street(path_sims, path_infos, sim_number, nside, nside_intermediate=None, verbose=False):

@@ -54,6 +54,10 @@ def ray_trace_glass(overdensity_array, z_bin_edges, cosmo_params, verbose=False)
     As = cosmo_params["A_s"]
 
     pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
+    Onu = pars.omeganu
+    Oc = Om - Ob - Onu
+    pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
+
     lmax = 2*nside #Beyond 2*nside the power spectrum vanishes
 
     cosmo = Cosmology.from_camb(pars)
@@ -112,6 +116,9 @@ def ray_trace_bornraytrace(overdensity_array, z_bin_edges, cosmo_params, verbose
     As = cosmo_params["A_s"]
 
     pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
+    Onu = pars.omeganu
+    Oc = Om - Ob - Onu
+    pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
     results = camb.get_results(pars)
     comoving_edges = results.comoving_radial_distance(z_bin_edges)
     """ z_centre = np.array(
@@ -126,16 +133,16 @@ def ray_trace_bornraytrace(overdensity_array, z_bin_edges, cosmo_params, verbose
 
     if verbose:
         print("[!] Performing the ray tracing using BornRaytrace...")
-        pbar = tqdm(range(overdensity_array.shape[0]))
+        pbar = tqdm(range(1, overdensity_array.shape[0]+1))
     else:
-        pbar = range(overdensity_array.shape[0])
+        pbar = range(1, overdensity_array.shape[0]+1)
 
     for i in pbar:
-        kappa_lensing[i] = lensing.raytrace(
+        kappa_lensing[i-1] = lensing.raytrace(
             100*h[0]*u.km/u.s/u.Mpc, Om,
             overdensity_array = overdensity_array[:i].T,
-            a_centre = 1./(1.+z_bin_edges[1:(i+1)]),
-            comoving_edges = comoving_edges[:i+1]
+            a_centre = 1./(1.+z_centre[:i]),
+            comoving_edges = comoving_edges[:(i+1)]
         )
 
     return kappa_lensing
@@ -183,11 +190,14 @@ def intrinsic_alignments(overdensity_array, z_bin_edges, cosmo_params, A_ia, eta
     As = cosmo_params["A_s"]
 
     pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
+    Onu = pars.omeganu
+    Oc = Om - Ob - Onu
+    pars = camb.set_params(H0=100*h, omch2=Oc*h**2, ombh2=Ob*h**2, ns=ns, mnu=m_nu, w=w, As=As, WantTransfer=True, NonLinear=camb.model.NonLinear_both)
     results = camb.get_background(pars)
 
     comoving_edges = results.comoving_radial_distance(z_bin_edges)
     z_centre = np.array(
-        [results.redshift_at_comoving_radial_distance((comoving_edges[i+1] + comoving_edges[i])/2) for i in range(len(z_bin_edges)-1)]
+        [(z_bin_edges[i+1]+z_bin_edges[i])*0.5 for i in range(len(z_bin_edges)-1)]
     )
 
     c1 = (5e-14 * (u.Mpc**3.)/(u.solMass))

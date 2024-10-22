@@ -17,13 +17,14 @@ ray_tracing: #Hyperparameters for the ray-tracing
 
 intrinsic_alignment:
   add_ia: T
-  A_ia: 0.49
-  eta_ia: 0.
+  prior_A_ia: [-3., 3.]
+  prior_eta_ia: [-5., 5.]
 
 redshift_distribution:
   weight_w_redshift: T
-  path_dndz: /n17data/mkilbing/astro/data/CFIS/v1.0/nz/dndz_SP_A.txt
-  save: T
+  nbins: 5
+  path_dndz: /home/guerrini/UNIONS_forward_model/data_utils/dndz.txt
+  save: F
 
 shape_noise:
   add_shape_noise: T
@@ -34,6 +35,21 @@ shape_noise:
   e2_col: e2
   w_col: w
   save: T
+
+psf_systematic:
+  add_systematic: T
+  path_psf: /n17data/mkilbing/astro/data/CFIS/v1.0/SP_LFmask/unions_shapepipe_star_2022_v1.3_mtheli8k.fits
+  path_prior_params: /home/guerrini/UNIONS_forward_model/data_utils/prior_psf_sys_SP_v1.3_LFmask_8k.npy
+  ra_col: RA
+  dec_col: DEC
+  e1_psf_col: E1_PSF_HSM
+  e2_psf_col: E2_PSF_HSM
+  size_psf_col: T_PSF_HSM
+  e1_star_col: E1_STAR_HSM
+  e2_star_col: E2_STAR_HSM
+  size_star_col: T_STAR_HSM
+  square_size: False
+  hdu: 1
 
 verbose: T
 
