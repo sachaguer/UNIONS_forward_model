@@ -193,6 +193,9 @@ if __name__ == '__main__':
             z = redshift_distr[:, 0]
             gamma_bar = weight_map_w_redshift(gamma_lensing, z_bin_edges, (dndz, z), verbose=verbose)
 
+            if config['redshift_distribution']['save_cl']:
+                cls = hp.anafast([gamma_bar.real, gamma_bar.real, gamma_bar.imag], pol=True, lmax=3*nside, use_pixel_weights=True)
+                output[f'cl_FS_gamma_bin{i+1}'] = cls
             if save:
                 if verbose:
                     print(f"[!] Saving the weighted maps for redshift bin {i+1}...")

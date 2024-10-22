@@ -25,6 +25,7 @@ redshift_distribution:
   nbins: 5
   path_dndz: /home/guerrini/UNIONS_forward_model/data_utils/dndz.txt
   save: F
+  save_cl: T
 
 shape_noise:
   add_shape_noise: T
