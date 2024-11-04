@@ -5,7 +5,7 @@ simulation:
   path_simulation: /n17data/sguerrini/GowerStreetSims/
   path_info: /n17data/sguerrini/GowerStreetSims/PKDGRAV3_on_DiRAC_DES_330 - Sheet1.csv
   path_output: /n17data/sguerrini/GowerStreetSims/processed/
-  sim_number: 1 #The index of the simulation to run (all to run with all simulations)
+  sim_number: 2 #The index of the simulation to run (all to run with all simulations)
   sim_name: GowerStreet #Only GowerStreet is currently supported
 
 preprocessing: #Hyperparameter for the preprocessing step
@@ -26,6 +26,7 @@ redshift_distribution:
   path_dndz: /home/guerrini/UNIONS_forward_model/data_utils/dndz.txt
   save: F
   save_cl: T
+  m_bias: /home/guerrini/UNIONS_forward_model/data_utils/m_bias_prior.txt
 
 shape_noise:
   add_shape_noise: T

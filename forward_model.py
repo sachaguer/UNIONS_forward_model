@@ -237,7 +237,11 @@ def add_shape_noise(shear_map, ra, dec, e1, e2, w):
     Returns
     -------
     np.array
-        Map with shape noise.
+        Masked shear map
+    np.array
+        Noise map
+    np.array
+        Pixel indices of the unmasked pixels.
     """
     nside = hp.npix2nside(len(shear_map))
 
@@ -284,5 +288,6 @@ def add_shape_noise(shear_map, ra, dec, e1, e2, w):
 
     masked_shear_map = g1_map + 1j*g2_map
     noise_map = noise_map_e1 + 1j*noise_map_e2
+    idx_ = np.arange(len(mask))[mask]
 
-    return masked_shear_map, noise_map
+    return masked_shear_map[mask], noise_map[mask], idx_

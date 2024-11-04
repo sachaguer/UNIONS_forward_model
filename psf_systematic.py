@@ -78,7 +78,7 @@ def sys_map(psf_cat, alpha, beta, eta, nside, config):
     sys_map_e1[mask] /= n_star[mask]
     sys_map_e2[mask] /= n_star[mask]
 
-    return sys_map_e1 +1j*sys_map_e2
+    return sys_map_e1 +1j*sys_map_e2, mask
 
 def sample_sys_map(path_psf_cat, nside, config, prior, verbose):
     """
@@ -119,8 +119,11 @@ def sample_sys_map(path_psf_cat, nside, config, prior, verbose):
 
     if verbose:
         print(f"[!] Sampling the systematic error map with alpha={alpha:.4f}, beta={beta:.2f}, eta={eta:.2f}...")
+    
+    sys_map_, mask = sys_map(psf_cat, alpha, beta, eta, nside, config)
+    idx_star = np.arange(len(mask))[mask]
 
-    return alpha, beta, eta, sys_map(psf_cat, alpha, beta, eta, nside, config)
+    return alpha, beta, eta, sys_map_[mask], idx_star
 
 
 
