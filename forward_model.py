@@ -159,7 +159,7 @@ def kappa2shear(kappa_map, lmax, verbose=False):
     return gamma
 
 
-def forward(path_sims, path_infos, sim_name='GowerStreet', add_ia=False, verbose=False, **kwargs):
+def forward(path_sims, path_infos, sim_name='GowerStreet', verbose=False, **kwargs):
     """
     Perform the forward model of the UNIONS shear maps.
 
@@ -194,26 +194,48 @@ def forward(path_sims, path_infos, sim_name='GowerStreet', add_ia=False, verbose
     kappa_lensing = ray_trace(overdensity_array, z_bin_edges, cosmo_params, method=method, verbose=verbose)
 
     gamma_lensing = kappa2shear(kappa_lensing, lmax=lmax, verbose=verbose)
-
-    if add_ia:
-        if verbose:
-            print("[!] Adding the intrinsic alignment to the shear maps...")
-        A_ia = kwargs.get('A_ia', None)
-        eta_ia = kwargs.get('eta_ia', None)
-        assert A_ia is not None, "The amplitude of the intrinsic alignment model is not defined."
-        assert eta_ia is not None, "The slope of the intrinsic alignment model is not defined."
-        if verbose:
-            print(f"[!] Amplitude of the intrinsic alignment model: {A_ia}")
-            print(f"[!] Slope of the intrinsic alignment model: {eta_ia}")
-        kappa_ia = intrinsic_alignments(overdensity_array, z_bin_edges, cosmo_params, A_ia, eta_ia)
-
-        gamma_ia = kappa2shear(kappa_ia, lmax=lmax, verbose=verbose)
-
-        gamma_lensing += gamma_ia
-    else:
-        kappa_ia = None
         
-    return kappa_lensing, kappa_ia, gamma_lensing, z_bin_edges, cosmo_params
+    return kappa_lensing, gamma_lensing, overdensity_array, z_bin_edges, cosmo_params
+
+def add_intrinsic_alignment(gamma_lensing, A_ia, eta_ia, overdensity_array, z_bin_edges, cosmo_params, verbose=False):
+    """
+    Add intrinsic alignment to the shear maps.
+
+    Parameters
+    ----------
+    gamma_lensing: np.array
+        Shear maps.
+    A_ia: float
+        Amplitude of the intrinsic alignment model.
+    eta_ia: float
+        Slope of the intrinsic alignment model.
+    overdensity_array: np.array
+        Overdensity maps.
+    z_bin_edges: np.array
+        Redshift bin edges.
+    cosmo_params: dict
+        Cosmological parameters.
+    verbose: bool
+        If True, print information about the process.
+    
+    Returns
+    -------
+    np.array
+        Shear maps with intrinsic alignment.
+    """
+    lmax = 2*hp.get_nside(gamma_lensing[0])
+    if verbose:
+        print(f"[!] Amplitude of the intrinsic alignment model: {A_ia}")
+        print(f"[!] Slope of the intrinsic alignment model: {eta_ia}")
+    kappa_ia = intrinsic_alignments(overdensity_array, z_bin_edges, cosmo_params, A_ia, eta_ia)
+
+    gamma_ia = kappa2shear(kappa_ia, lmax=lmax, verbose=verbose)
+
+    gamma_lensing += gamma_ia
+
+    return gamma_lensing
+
+
 
 def add_shape_noise(shear_map, ra, dec, e1, e2, w):
     """

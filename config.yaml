@@ -32,7 +32,7 @@ shape_noise:
   add_shape_noise: T
   path_gal: /n17data/mkilbing/astro/data/CFIS/v1.0/SP_LFmask/unions_shapepipe_2022_v1.3_mtheli8k.fits
   ra_col: RA
-  dec_col: DEC
+  dec_col: Dec
   e1_col: e1
   e2_col: e2
   w_col: w
