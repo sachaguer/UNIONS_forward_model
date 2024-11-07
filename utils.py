@@ -120,7 +120,7 @@ def sigma8_difference(logAs, cosmo_params):
 
 def read_cosmo_params(path_info, sim):
     """
-    Returns a dictionary with the cosmologial parameters used to generate the simulation indexed by sim.
+    Returns a dictionary with the cosmologial parameters used to generate the simulation indexed by sim for the Gower Street simulations.
 
     Parameters
     ----------
