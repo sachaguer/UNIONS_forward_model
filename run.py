@@ -163,6 +163,14 @@ if __name__ == '__main__':
         path_sims, path_info, sim_name=sim_name, sim_number=sim_idx, nside=nside, nside_intermediate=nside_intermediate, method=ray_tracing_method, verbose=verbose
     )
     output['cosmo_params'] = cosmo_params
+    np.save(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
+    np.save(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy', overdensity_array)
+    np.save(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy', gamma_lensing)
+
+    del overdensity_array
+    del kappa_lensing
+    del gamma_lensing
+
 
     if verbose:
         print_cosmo_params(cosmo_params)
@@ -179,6 +187,7 @@ if __name__ == '__main__':
                 start_ = time.time()
                 output_ = output.copy()
                 nuisance_parameters = {}
+                gamma_lensing = np.load(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
                 if add_ia == 'T':
                     A_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_A_ia'][0], high=config['intrinsic_alignment']['prior_A_ia'][1])
                     eta_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_eta_ia'][0], high=config['intrinsic_alignment']['prior_eta_ia'][1])
@@ -186,14 +195,18 @@ if __name__ == '__main__':
                         print("[!] Adding the intrinsic alignment to the shear maps...")
                     nuisance_parameters['A_ia'] = A_ia
                     nuisance_parameters['eta_ia'] = eta_ia
+                    overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
                     gamma_lensing = add_intrinsic_alignment(gamma_lensing, A_ia, eta_ia, overdensity_array, z_bin_edges, cosmo_params, verbose=verbose)
+                    del overdensity_array
 
                 #Saves the output if required
                 save_ray_tracing = config['ray_tracing']['save_ray_tracing']
                 if save_ray_tracing == 'T':
                     if verbose:
                         print("[!] Saving the ray tracing maps...")
+                    kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
                     output_['kappa_lensing'] = kappa_lensing
+                    del kappa_lensing
                     output_['gamma_lensing'] = gamma_lensing
                     output_['z_bin_edges'] = z_bin_edges
 
@@ -222,6 +235,16 @@ if __name__ == '__main__':
                         
 
                     save = config['redshift_distribution']['save']
+
+                    if config['shape_noise']['add_shape_noise'] == 'T':
+                        #Load the catalog to avoid repeating costly operations on the catalog.
+                        if verbose:
+                            print("[!] Load the galaxy catalog...")
+                        path_cat = config['shape_noise']['path_gal'] 
+                        cat_gal = fits.getdata(path_cat)
+                        ra, dec, e1, e2, w = load_sources(path_cat, config['shape_noise'])
+
+                        ra, dec, e1, e2 = get_rotation(ra, dec, e1, e2, j, k, verbose)
                     #Compute the shear map weighted by the redshift distribution
                     for i in range(nbins):
                         output_[f'bin_{i+1}'] = {}
@@ -239,26 +262,28 @@ if __name__ == '__main__':
                             gamma_bar = gamma_bar * (1+m_bias)
 
                         if config['redshift_distribution']['save_cl'] == 'T':
+                            if verbose:
+                                print(f"[!] Computing the cls in bin {i+1}...")
+                            start_cls = time.time()
+                            kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
                             kappa_bar = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
                             cls = hp.anafast([kappa_bar, gamma_bar.real, gamma_bar.imag], pol=True, lmax=3*nside, use_pixel_weights=True)
                             output_[f'bin_{i+1}'][f'cl_FS_gamma'] = cls
+                            del kappa_lensing, kappa_bar
+                            if verbose:
+                                print(f"[!] Cls computed in {(time.time()-start_cls)/60:.2f} minutes...")
                         if save == 'T':
                             if verbose:
                                 print(f"[!] Saving the weighted maps for redshift bin {i+1}...")
                             output_[f'bin_{i+1}'][f'gamma_weighted'] = gamma_bar
 
                         #Mask and add shape noise
-                        if config['shape_noise']['add_shape_noise']:
+                        if config['shape_noise']['add_shape_noise'] == 'T':
                             if verbose:
                                 print("[!] Adding shape noise and applying mask to the shear map...")
-                                print("[!] Load the galaxy catalog...")
-                            path_cat = config['shape_noise']['path_gal']
-                            cat_gal = fits.getdata(path_cat)
-                            ra, dec, e1, e2, w = load_sources(path_cat, config['shape_noise'])
-
-                            ra, dec, e1, e2 = get_rotation(ra, dec, e1, e2, j, k, verbose)
-
+                            #!!!does not take into account the different galaxies in different bins!!!
                             masked_shear_map, noise_map, idx_ = add_shape_noise(gamma_bar, ra, dec, e1, e2, w)
+                            del gamma_bar
 
                             save = config['shape_noise']['save']
                             if save == 'T':
@@ -267,6 +292,7 @@ if __name__ == '__main__':
                                 output_[f'bin_{i+1}'][f'masked_shear_map'] = masked_shear_map
                                 output_[f'bin_{i+1}'][f'noise_map'] = noise_map
                                 output_[f'bin_{i+1}'][f'idx'] = idx_
+                                del masked_shear_map, noise_map, idx_
 
                         if config['psf_systematic']['add_systematic']:
                             if verbose:
@@ -279,16 +305,21 @@ if __name__ == '__main__':
                             nuisance_parameters[f'bin_{i+1}'][f'alpha'] = alpha
                             nuisance_parameters[f'bin_{i+1}'][f'beta'] = beta
                             nuisance_parameters[f'bin_{i+1}'][f'eta'] = eta
+                            del sys_map, idx_star
 
                         
 
                 output_['nuisance_parameters'] = nuisance_parameters
                 #Save the output
                 np.save(path_output+f'/forward_model_sim{sim_idx:05d}_nside{nside:04d}_rot{j}{k}_noisereal{noise_real}.npy', output_)
+                del output_
                 if verbose:
                     print(f"[!] The forward model for rotation {j}{k} is done.")
-                    print(f"[!] The forward model for rotztion {j}{k} took {(time.time()-start_)/60:.2f} minutes.")
-            
+                    print(f"[!] The forward model for rotation {j}{k} took {(time.time()-start_)/60:.2f} minutes.")
+
+    os.remove(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+    os.remove(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
+    os.remove(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')     
     print(f"[!] The forward model for simulation {sim_idx} is done.")
     print(f"[!] The forward model for simulation {sim_idx} took {(time.time()-start)/60:.2f} minutes.")
 
