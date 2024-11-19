@@ -176,11 +176,18 @@ if __name__ == '__main__':
         print_cosmo_params(cosmo_params)
     
     output['config'] = config
+    
+    n_noise_real = config['n_noise_real']
+    rot_ra = config['rot_ra']
+    rot_dec = config['rot_dec']
+
+    assert all(rot in range(0, 5) for rot in rot_ra), "The rotation in RA must be between 0 and 4."
+    assert all(rot in range(0, 5) for rot in rot_dec), "The rotation in DEC must be between 0 and 4."
 
     #Iterate on the different rotations of the footprint + noise realisation 
-    for noise_real in range(2): #Two different noise realizations
-        for j in range(5): #Index for the rotation of the footprint in RA
-            for k in range(5): #Index for the roation of the footprint in DEC
+    for noise_real in range(n_noise_real): #Two different noise realizations
+        for j in rot_ra: #Index for the rotation of the footprint in RA
+            for k in rot_dec: #Index for the roation of the footprint in DEC
                 
                 if verbose:
                     print(f"[!] Performing the forward model for the rotation of {j*360/5} degrees in RA and {rot_footprint_angle[k]} degrees in DEC...")
@@ -230,6 +237,13 @@ if __name__ == '__main__':
                     else:
                         m_bias_prior = None
 
+                    #Check if the photo_z systematic prior is provided
+                    if 'delta_z' in config['redshift_distribution']:
+                        delta_z_prior = np.loadtxt(config['redshift_distribution']['delta_z'])
+                        assert delta_z_prior.shape[0] == nbins, "The delta_z file does not correspond to the number of bins."
+                    else:
+                        delta_z_prior = None
+
                     if validation_plot:
                         validation_plot_dndz(redshift_distr, nbins)
                         
@@ -251,6 +265,13 @@ if __name__ == '__main__':
                         nuisance_parameters[f'bin_{i+1}'] = {}
                         dndz = redshift_distr[:, i+1]
                         z = redshift_distr[:, 0]
+                        if delta_z_prior is not None:
+                            delta_z = np.random.normal(loc=delta_z_prior[i, 0], scale=delta_z_prior[i, 1])
+                            nuisance_parameters[f'bin_{i+1}']['delta_z'] = delta_z
+                            if verbose:
+                                print(f"[!] Adding photo-z systematic error of {delta_z} in bin {i+1}...")
+                            z_shift = z + delta_z
+                            dndz = np.interp(z, z_shift, dndz)
                         gamma_bar = weight_map_w_redshift(gamma_lensing, z_bin_edges, (dndz, z), verbose=verbose)
 
                         #Add multiplicative shear bias

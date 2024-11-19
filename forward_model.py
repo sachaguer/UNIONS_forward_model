@@ -1,5 +1,6 @@
 import os
 import time
+import h5py
 
 import numpy as np
 import healpy as hp
@@ -100,6 +101,83 @@ def preprocessing_gower_street(path_sims, path_infos, sim_number, nside, nside_i
         print("[!] Larger redshift:", z_bin_edges[-1])
 
     return overdensity_array, z_bin_edges, cosmo_params
+
+def preprocessing_cosmogrid(path_sims, path_infos, nside, nside_intermediate=None, verbose=False):
+    """
+    Preprocess the Cosmogrid simulations to get the convergence maps.
+
+    Parameters
+    ----------
+    path_sims: str
+        Path to the Cosmogrid simulations.
+    path_infos: str
+        Path to the information files.
+    nside: int
+        Resolution of the output maps.
+    nside_intermediate: int
+        Resolution of the intermediate maps. If None, no intermediate map is generated.
+    verbose: bool
+        If True, print information about the process.
+
+    Returns
+    -------
+    np.array
+        Weak lensing map for each redshift shell in healpy format.
+    np.array
+        Redshift shells edges
+    dict
+        Cosmological parameters used to perform the simulation
+    """
+    #!!!not yet correctly implemented: few thingsd are hardcoded!!!
+
+    assert os.path.exists(path_infos), "The path to the information file does not exist."
+
+    meta_info = h5py.File(path_infos, 'r')
+    if verbose:
+        print(f"[!] Preprocessing the CosmoGridsV1 simulation...")
+        print(f"[!] Reading the cosmological parameters...")
+    #Read the cosmological parameters
+    start = time.time()
+    cosmo_params = {}
+    cosmo_params['Omega_m'] = meta_info['parameters']['fiducial']['Om'][0]
+    cosmo_params['Omega_b'] = meta_info['parameters']['fiducial']['Ob'][0]
+    cosmo_params['h'] = meta_info['parameters']['fiducial']['H0'][0]/100
+    cosmo_params['n_s'] = meta_info['parameters']['fiducial']['ns'][0]
+    cosmo_params['sigma8'] = meta_info['parameters']['fiducial']['s8'][0]/np.sqrt(cosmo_params['Omega_m']/0.3)
+    cosmo_params['w'] = meta_info['parameters']['fiducial']['w0'][0]
+    cosmo_params['m_nu'] = meta_info['parameters']['fiducial']['m_nu'][0]
+    cosmo_params['As'] = meta_info['parameters']['fiducial']['As'][0]
+
+    #Get the overdensity array and shell information
+    if verbose:
+        print(f"[!] Extracting overdensity maps and redshift edges for the CosmoGridsV1 simulation...")
+    path_ = os.path.join(path_sims, meta_info['parameters']['fiducial']['path_par'][0].decode('utf-8'))
+    path_ = os.path.join(path_, 'run_0000/compressed_shells.npz') #hardcoded
+    compressed_shells = np.load(path_)
+    overdensity_array = compressed_shells['shells']
+    overdensity_array = overdensity_array/np.mean(overdensity_array, axis=1)[:, None] - 1
+    if nside != hp.npix2nside(len(overdensity_array[0])):
+        overdensity_array_ = overdensity_array.copy()
+        overdensity_array = []
+        for i in tqdm(range(len(overdensity_array_))):
+            map_ = overdensity_array_[i]
+            if nside_intermediate is not None:
+                map_ = downgrade_lightcone(map_, nside_intermediate, verbose=False)
+            map_ = downgrade_lightcone(map_, nside, verbose=False)
+            overdensity_array.append(map_)
+        overdensity_array = np.array(overdensity_array)
+    shell_info = compressed_shells['shell_info']
+    del compressed_shells
+
+    z_bin_edges = np.concatenate((shell_info['lower_z'], [shell_info['upper_z'][-1]]))
+    
+    if verbose:
+        print(f"[!] Done in {(time.time()-start)/60} minutes...")  
+        print("[!] Number of redshift shells:", len(z_bin_edges)-1)
+        print("[!] Larger redshift:", z_bin_edges[-1])
+
+    return overdensity_array, z_bin_edges, cosmo_params
+
 
 def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, verbose=False):
     """
