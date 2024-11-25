@@ -28,6 +28,7 @@ redshift_distribution:
   save_cl: T
   m_bias: /home/guerrini/UNIONS_forward_model/data_utils/m_bias_prior.txt
   delta_z: /home/guerrini/UNIONS_forward_model/data_utils/delta_z_prior.txt
+  bias_sc: 1.0
 
 shape_noise:
   add_shape_noise: T
@@ -55,8 +56,8 @@ psf_systematic:
   hdu: 1
 
 n_noise_real: 2
-rot_ra: [0, 1, 2, 3, 4] #Rotation in RA of the footprint (list included in [0, 1, 2, 3, 4])
-rot_dec: [0, 1, 2, 3, 4] #Rotation in DEC of the footprint (list included in [0, 1, 2, 3, 4])
+rot_ra: [0] #Rotation in RA of the footprint (list included in [0, 1, 2, 3, 4])
+rot_dec: [0] #Rotation in DEC of the footprint (list included in [0, 1, 2, 3, 4])
 
 verbose: T
 

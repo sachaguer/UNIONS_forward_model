@@ -48,7 +48,7 @@ def validation_plot_dndz(redshift_distr, nbins):
 def validate_convergence_power_spectrum(kappa_lensing, z_bin_edges, redshift_distr, verbose, nside, cosmo_params):
 
     dndz, z = redshift_distr
-    kappa_lensing_bar = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
+    kappa_lensing_bar, _ = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
 
     plot_mollview(kappa_lensing_bar, title='Convergence map weighted by the redshift distribution', path_output=path_output+'/Plots/kappa_lensing_bar.png', cmap='inferno')
 
@@ -181,6 +181,14 @@ if __name__ == '__main__':
     rot_ra = config['rot_ra']
     rot_dec = config['rot_dec']
 
+    #galaxy bias for source clustering
+    b_sc = config['redshift_distribution'].get('b_sc', 0.0)
+    if verbose:
+        if b_sc == 0.0:
+            print("[!] Source clustering is not taken into account.")
+        else:
+            print(f"[!] Source clustering is taken into account with a bias of b_g={b_sc}.")
+
     assert all(rot in range(0, 5) for rot in rot_ra), "The rotation in RA must be between 0 and 4."
     assert all(rot in range(0, 5) for rot in rot_dec), "The rotation in DEC must be between 0 and 4."
 
@@ -272,7 +280,13 @@ if __name__ == '__main__':
                                 print(f"[!] Adding photo-z systematic error of {delta_z} in bin {i+1}...")
                             z_shift = z + delta_z
                             dndz = np.interp(z, z_shift, dndz)
-                        gamma_bar = weight_map_w_redshift(gamma_lensing, z_bin_edges, (dndz, z), verbose=verbose)
+                        if b_sc != 0.0:
+                            overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                        else:
+                            overdensity_array = None
+                        gamma_bar, noise_factor = weight_map_w_redshift(gamma_lensing, z_bin_edges, (dndz, z), bias=b_sc, overdensity_array=overdensity_array, verbose=verbose)
+                        #noise factor is a scaling factor for the noise map to avoid double counting source clustering effects.
+                        del overdensity_array
 
                         #Add multiplicative shear bias
                         if m_bias_prior is not None:
@@ -287,7 +301,7 @@ if __name__ == '__main__':
                                 print(f"[!] Computing the cls in bin {i+1}...")
                             start_cls = time.time()
                             kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
-                            kappa_bar = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
+                            kappa_bar, _ = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
                             cls = hp.anafast([kappa_bar, gamma_bar.real, gamma_bar.imag], pol=True, lmax=3*nside, use_pixel_weights=True)
                             output_[f'bin_{i+1}'][f'cl_FS_gamma'] = cls
                             del kappa_lensing, kappa_bar
@@ -304,6 +318,7 @@ if __name__ == '__main__':
                                 print("[!] Adding shape noise and applying mask to the shear map...")
                             #!!!does not take into account the different galaxies in different bins!!!
                             masked_shear_map, noise_map, idx_ = add_shape_noise(gamma_bar, ra, dec, e1, e2, w)
+                            noise_map = noise_map * noise_factor
                             del gamma_bar
 
                             save = config['shape_noise']['save']

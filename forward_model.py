@@ -179,7 +179,7 @@ def preprocessing_cosmogrid(path_sims, path_infos, nside, nside_intermediate=Non
     return overdensity_array, z_bin_edges, cosmo_params
 
 
-def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, verbose=False):
+def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, bias=0.0, overdensity_array=None, verbose=False):
     """
     Weight a map with a given redshift distribution. For now source clustering is not
     taken into account.
@@ -201,6 +201,9 @@ def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, verbose=Fals
         Weighted map.
     """
 
+    if bias != 0.0:
+        assert overdensity_array is not None, "Overdensity array is required to compute the source clustering."
+
     dndz, z = redshift_distribution
 
     weights = glass.shells.tophat_windows(z_bin_edges)
@@ -212,13 +215,23 @@ def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, verbose=Fals
     else:
         pbar = range(len(z_bin_edges)-1)
 
+    normalization_src_clustering = 0 #Add src clustering (See Gatti et al. 2024)
+    normalization_dndz = 0
     for i in pbar:
         z_i, dndz_i = glass.shells.restrict(z, dndz, weights[i])
 
         ngal = np.trapz(dndz_i, z_i)
-        map_bar += ngal * map_[i]
 
-    return map_bar/np.trapz(dndz, z)
+        if bias != 0.0:
+            src_clustering = (1. + bias * overdensity_array[i])
+        else:
+            src_clustering = 1.0
+        map_bar += ngal * map_[i] * src_clustering
+        normalization_src_clustering += ngal * src_clustering
+        normalization_dndz += ngal
+        noise_factor = np.sqrt(normalization_dndz/normalization_src_clustering)
+
+    return map_bar/normalization_src_clustering, noise_factor
 
 def kappa2shear(kappa_map, lmax, verbose=False):
     if verbose:
