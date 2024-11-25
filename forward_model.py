@@ -192,6 +192,10 @@ def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, bias=0.0, ov
         Bin edges of the redshift shells.
     redshift_distribution: (np.array, np.array)
         Redshift distribution to be used as weight. The tuple contains dndz and z.
+    bias: float
+        Galaxy bias parameter to be used to compute the source clustering. If 0.0, no source clustering is applied.
+    overdensity_array: np.array
+        Overdensity array to compute the source clustering. If None, no source clustering is applied.
     verbose: bool
         If True, print the progress of the weighting.
 
