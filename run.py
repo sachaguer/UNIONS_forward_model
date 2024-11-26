@@ -177,9 +177,9 @@ if __name__ == '__main__':
     
     output['config'] = config
     
-    n_noise_real = config['n_noise_real']
-    rot_ra = config['rot_ra']
-    rot_dec = config['rot_dec']
+    n_noise_real = config.get('n_noise_real', 0)
+    rot_ra = config.get('rot_ra', [0])
+    rot_dec = config.get('rot_dec', [0])
 
     #galaxy bias for source clustering
     b_sc = config['redshift_distribution'].get('b_sc', 0.0)
