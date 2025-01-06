@@ -4,7 +4,7 @@
 simulation:
   path_simulation: /n17data/sguerrini/GowerStreetSims/
   path_info: /n17data/sguerrini/GowerStreetSims/PKDGRAV3_on_DiRAC_DES_330 - Sheet1.csv
-  path_output: /n17data/sguerrini/GowerStreetSims/sc_test/
+  path_output: /n17data/sguerrini/GowerStreetSims/test_storage/
   sim_number: 1 #The index of the simulation to run (all to run with all simulations)
   sim_name: GowerStreet #Only GowerStreet is currently supported
 
@@ -16,7 +16,7 @@ ray_tracing: #Hyperparameters for the ray-tracing
   save_ray_tracing: F
 
 intrinsic_alignment:
-  add_ia: F
+  add_ia: T
   prior_A_ia: [-3., 3.]
   prior_eta_ia: [-5., 5.]
 
@@ -24,7 +24,7 @@ redshift_distribution:
   weight_w_redshift: T
   nbins: 1
   path_dndz: /n17data/mkilbing/astro/data/CFIS/v1.0/nz/dndz_SP_A.txt
-  save: F
+  save: T
   save_cl: T
   #m_bias: /home/guerrini/UNIONS_forward_model/data_utils/m_bias_prior.txt
   #delta_z: /home/guerrini/UNIONS_forward_model/data_utils/delta_z_prior.txt
@@ -55,7 +55,7 @@ psf_systematic:
   square_size: False
   hdu: 1
 
-n_noise_real: 2
+n_noise_real: 1
 rot_ra: [0] #Rotation in RA of the footprint (list included in [0, 1, 2, 3, 4])
 rot_dec: [0] #Rotation in DEC of the footprint (list included in [0, 1, 2, 3, 4])
 

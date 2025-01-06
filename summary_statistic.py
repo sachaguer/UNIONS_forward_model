@@ -26,8 +26,8 @@ def get_pseudo_cls(map_, nside, binning='linear', **kwargs):
         The pseudo-Cl of the map.
     """
     lmin = 8
-    lmax = 3*nside
-    b_lmax = 3*nside-1
+    lmax = kwargs.get('lmax', 3*nside)
+    b_lmax = lmax - 1
 
     if binning == 'linear':
         step = kwargs.get('lin_step', 10)
@@ -50,9 +50,12 @@ def get_pseudo_cls(map_, nside, binning='linear', **kwargs):
 
         b = nmt.NmtBin(ells=ells, bpws=bpws, lmax=b_lmax)
 
+    pol_factor = kwargs.get('pol_factor', False)
+    factor = -1 if pol_factor else 1
+
     ell_eff = b.get_effective_ells()
 
-    f_all = nmt.NmtField(mask=(map_ != 0), maps=[map_.real, map_.imag])
+    f_all = nmt.NmtField(mask=(map_ != 0), maps=[map_.real, factor*map_.imag], lmax=b_lmax)
 
     cl_all = nmt.compute_full_master(f_all, f_all, b)
 
