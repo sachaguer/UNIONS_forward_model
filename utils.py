@@ -182,6 +182,7 @@ def apply_random_rotation(e1, e2):
 
 def rotate_gals(ras, decs, gammas1, gammas2, rotangle_rad=None, rotangle_dec=None, inv=False, units="deg", rot=None):
     """ Rotates survey patch s.t. its center of mass lies in the origin.
+
     Author: Pierre Burger
     
     Parameters
@@ -250,7 +251,7 @@ def rotate_gals(ras, decs, gammas1, gammas2, rotangle_rad=None, rotangle_dec=Non
     
     return ra_rot, dec_rot, gamma_rot.real, gamma_rot.imag
 
-def load_sources(path, config):
+def load_sources(path, config, cat_type='gal'):
     """
     Load the source galaxies from the UNIONS from a FITS file and apply rotations to the galaxies to modify the footprint.
 
@@ -279,68 +280,54 @@ def load_sources(path, config):
     
     rac = data[config['ra_col']]
     dec = data[config['dec_col']]
-    weight = data[config['w_col']]
-    e_1 = data[config['e1_col']]
-    e_2 = data[config['e2_col']]
+    if cat_type == 'gal':
+        weight = data[config['w_col']]
+        e_1 = data[config['e1_col']]
+        e_2 = data[config['e2_col']]
+    elif cat_type == 'star':
+        e_1_star = data[config['e1_star_col']]
+        e_2_star = data[config['e2_star_col']]
+        e_1_psf = data[config['e1_psf_col']]
+        e_2_psf = data[config['e2_psf_col']]
+        size_star = data[config['size_star_col']]**2 if config['square_size'] else data[config['size_star_col']]
+        size_psf = data[config['size_psf_col']]**2 if config['square_size'] else data[config['size_psf_col']]
+    else:
+        raise ValueError("cat_type must be 'gal' or 'star'.")
 
-    gal_2_rot = (rac<50)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= -20, rotangle_dec= 0)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
-
-    gal_2_rot = (rac>300)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= -20, rotangle_dec= 0)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
-
-    gal_2_rot = (rac<50)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= 0, rotangle_dec= 50)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
-
-    gal_2_rot = (dec>20)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= 0, rotangle_dec= 5)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
-
-    gal_2_rot = (dec<20)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= -8.5, rotangle_dec= 0)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
-
-    gal_2_rot = (dec<20)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= 0, rotangle_dec= 5)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
+    masks_conditions = [
+        lambda rac, dec: (rac < 50),
+        lambda rac, dec: (rac > 300),
+        lambda rac, dec: (rac < 50),
+        lambda rac, dec: (dec > 20),
+        lambda rac, dec: (dec < 20),
+        lambda rac, dec: (dec < 20),
+        lambda rac, dec: (dec < 20),
+        lambda rac, dec: (dec > 65) & (rac > 0)
+    ]
+    rotangles_rad = [-20, -20, 0, 0, -8.5, 0, -5, 5]
+    rotangles_dec = [0, 0, 50, 5, 0, 5, 0, 0]
+    for condition, rot_rad, rot_dec in zip(masks_conditions, rotangles_rad, rotangles_dec):
+        gal_2_rot = condition(rac, dec)
+        if cat_type == 'gal':
+            ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= rot_rad, rotangle_dec= rot_dec)
+            dec[gal_2_rot] = dec_rot
+            rac[gal_2_rot] = ra_rot
+            e_1[gal_2_rot] = e_1_rot
+            e_2[gal_2_rot] = e_2_rot
+        elif cat_type == 'star':
+            ra_rot, dec_rot, e_1_star_rot, e_2_star_rot = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_star[gal_2_rot], gammas2=e_2_star[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
+            _, _, e_1_psf_rot, e_2_psf_rot = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_psf[gal_2_rot], gammas2=e_2_psf[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
+            dec[gal_2_rot] = dec_rot
+            rac[gal_2_rot] = ra_rot
+            e_1_star[gal_2_rot] = e_1_star_rot
+            e_2_star[gal_2_rot] = e_2_star_rot
+            e_1_psf[gal_2_rot] = e_1_psf_rot
+            e_2_psf[gal_2_rot] = e_2_psf_rot
     
-    gal_2_rot = (dec<20)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= -5, rotangle_dec= 0)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
-    
-    gal_2_rot = (dec>65)&(rac>0)
-    ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= 5, rotangle_dec= 0)
-    dec[gal_2_rot] = dec_rot
-    rac[gal_2_rot] = ra_rot
-    e_1[gal_2_rot] = e_1_rot
-    e_2[gal_2_rot] = e_2_rot
-    
-    
-    return rac,dec,e_1,e_2,weight
+    if cat_type == 'gal':
+        return rac,dec,e_1,e_2,weight
+    elif cat_type == 'star':
+        return rac,dec,e_1_star,e_2_star,e_1_psf,e_2_psf,size_star,size_psf
 
 def get_rotation(ra, dec, e1, e2, i, j, verbose=False):
     """
