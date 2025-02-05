@@ -408,3 +408,20 @@ def add_shape_noise(shear_map, ra, dec, e1, e2, w):
     idx_ = np.arange(len(mask))[mask]
 
     return masked_shear_map[mask], noise_map[mask], idx_
+
+def get_reduced_shear(gamma_lensing, kappa_lensing):
+    """
+    Get the reduced shear from the shear maps.
+
+    $$g = \frac{\gamma}{1-\kappa}$$
+
+    Parameters
+    ----------
+    gamma_lensing: np.array
+        Shear maps.
+    kappa_lensing: np.array
+        Convergence maps.
+    """
+    assert len(gamma_lensing) == len(kappa_lensing), "The number of redshift shells in the shear and convergence maps must be the same."
+
+    return gamma_lensing/(1-kappa_lensing)

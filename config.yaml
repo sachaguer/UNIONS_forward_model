@@ -14,6 +14,7 @@ preprocessing: #Hyperparameter for the preprocessing step
 ray_tracing: #Hyperparameters for the ray-tracing
   method: glass #Currently supports glass and bornraytrace
   save_ray_tracing: F
+  reduced_shear: T
 
 intrinsic_alignment:
   add_ia: T

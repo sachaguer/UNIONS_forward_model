@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import camb
 from astropy.io import fits
 
-from forward_model import forward, weight_map_w_redshift, add_shape_noise, add_intrinsic_alignment
+from forward_model import forward, weight_map_w_redshift, add_shape_noise, add_intrinsic_alignment, get_reduced_shear
 from psf_systematic import sample_sys_map
 from utils import rot_footprint_angle, load_sources, get_rotation
 
@@ -153,6 +153,7 @@ if __name__ == '__main__':
     nside = config['preprocessing']['nside']
     nside_intermediate = config['preprocessing'].get('nside_intermediate', None)
     add_ia = config['intrinsic_alignment']['add_ia']
+    reduced_shear = config['ray_tracing']['reduced_shear']
 
     if verbose:
         print("[!] Performing the forward model...")
@@ -213,6 +214,13 @@ if __name__ == '__main__':
                     overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
                     gamma_lensing = add_intrinsic_alignment(gamma_lensing, A_ia, eta_ia, overdensity_array, z_bin_edges, cosmo_params, verbose=verbose)
                     del overdensity_array
+
+                if reduced_shear == 'T':
+                    if verbose:
+                        print("[!] Compute the reduced shear from the shear and kappa maps...")
+                    kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    gamma_lensing = get_reduced_shear(gamma_lensing, kappa_lensing)
+                    del kappa_lensing
 
                 #Saves the output if required
                 save_ray_tracing = config['ray_tracing']['save_ray_tracing']
@@ -335,7 +343,7 @@ if __name__ == '__main__':
                                 print(f"[!] Adding the PSF systematic error in bin {i+1}...")
                             path_psf = config['psf_systematic']['path_psf']
                             prior_params = np.load(config['psf_systematic']['path_prior_params'], allow_pickle=True).item()
-                            alpha, beta, eta, sys_map, idx_star = sample_sys_map(path_psf, nside, config['psf_systematic'], prior_params[f'bin{i+1}'], verbose)
+                            alpha, beta, eta, sys_map, idx_star = sample_sys_map(path_psf, nside, config['psf_systematic'], prior_params[f'bin{i+1}'], verbose, i=j, j=k)
                             output_[f'bin_{i+1}'][f'sys_map'] = sys_map
                             output_[f'bin_{i+1}'][f'idx_star'] = idx_star
                             nuisance_parameters[f'bin_{i+1}'][f'alpha'] = alpha
