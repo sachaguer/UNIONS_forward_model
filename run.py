@@ -15,9 +15,6 @@ from psf_systematic import sample_sys_map
 from utils import rot_footprint_angle, load_sources, get_rotation
 
 plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif",
-    "font.serif": ["Times New Roman"],  # You can change this font if you prefer
     "axes.labelsize": 14,  # Adjust as needed
     "axes.titlesize": 16,  # Adjust as needed
     "xtick.labelsize": 14,  # Adjust as needed
@@ -249,6 +246,7 @@ if __name__ == '__main__':
                     #Check if the m_bias prior is provided
                     if 'm_bias' in config['redshift_distribution']:
                         m_bias_prior = np.loadtxt(config['redshift_distribution']['m_bias'])
+                        m_bias_prior = m_bias_prior.reshape((-1, 2))
                         assert m_bias_prior.shape[0] == nbins, "The m_bias file does not correspond to the number of bins."
                     else:
                         m_bias_prior = None
@@ -256,6 +254,7 @@ if __name__ == '__main__':
                     #Check if the photo_z systematic prior is provided
                     if 'delta_z' in config['redshift_distribution']:
                         delta_z_prior = np.loadtxt(config['redshift_distribution']['delta_z'])
+                        delta_z_prior = delta_z_prior.reshape((-1, 2))
                         assert delta_z_prior.shape[0] == nbins, "The delta_z file does not correspond to the number of bins."
                     else:
                         delta_z_prior = None

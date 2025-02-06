@@ -208,5 +208,5 @@ def intrinsic_alignments(overdensity_array, z_bin_edges, cosmo_params, A_ia, eta
     G = G.cgs
     rho_crit = 3 * H0**2 / (8 * np.pi * G)
     rho_c1 = (c1_cgs * rho_crit).value
-    f_nla_array = ia.F_nla(z_centre, Om, A_ia, rho_c1=rho_c1, eta=eta_ia, z0=0.62)
+    f_nla_array = ia.F_nla(z_centre, Om[0], A_ia, rho_c1=rho_c1, eta=eta_ia, z0=0.62)
     return (overdensity_array.T * f_nla_array).T
