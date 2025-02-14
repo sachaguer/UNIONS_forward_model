@@ -2,9 +2,9 @@
 #The yaml file contains most of the parameters needed to run the pipeline
 
 simulation:
-  path_simulation: /n17data/sguerrini/GowerStreetSims/
-  path_info: /n17data/sguerrini/GowerStreetSims/PKDGRAV3_on_DiRAC_DES_330 - Sheet1.csv
-  path_output: /n17data/sguerrini/GowerStreetSims/test_storage/
+  path_simulation: /lustre/fsmisc/dataset/GowerStreetSims/
+  path_info: /lustre/fsmisc/dataset/GowerStreetSims/PKDGRAV3_on_DiRAC_DES_330 - Sheet1.csv
+  path_output: /lustre/fswork/projects/rech/prk/uid35yw/test_gss/
   sim_number: 1 #The index of the simulation to run (all to run with all simulations)
   sim_name: GowerStreet #Only GowerStreet is currently supported
 
@@ -24,16 +24,16 @@ intrinsic_alignment:
 redshift_distribution:
   weight_w_redshift: T
   nbins: 1
-  path_dndz: /n17data/mkilbing/astro/data/CFIS/v1.0/nz/dndz_SP_A.txt
+  path_dndz: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/dndz_SP_A.txt
   save: T
   save_cl: T
-  #m_bias: /home/guerrini/UNIONS_forward_model/data_utils/m_bias_prior.txt
-  #delta_z: /home/guerrini/UNIONS_forward_model/data_utils/delta_z_prior.txt
+  #m_bias: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/m_bias_prior.txt
+  #delta_z: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/delta_z_prior.txt
   bias_sc: 1.0
 
 shape_noise:
   add_shape_noise: T
-  path_gal: /n17data/mkilbing/astro/data/CFIS/v1.0/SP_LFmask/unions_shapepipe_2022_v1.3_mtheli8k.fits
+  path_gal: /lustre/fsn1/projects/rech/prk/uid35yw/unions_shapepipe_2022_v1.3_mtheli8k.fits
   ra_col: RA
   dec_col: Dec
   e1_col: e1
@@ -43,8 +43,8 @@ shape_noise:
 
 psf_systematic:
   add_systematic: T
-  path_psf: /n17data/mkilbing/astro/data/CFIS/v1.0/SP_LFmask/unions_shapepipe_star_2022_v1.3_mtheli8k.fits
-  path_prior_params: /home/guerrini/UNIONS_forward_model/data_utils/prior_psf_sys_SP_v1.3_LFmask_8k.npy
+  path_psf: /lustre/fsn1/projects/rech/prk/uid35yw/unions_shapepipe_star_2022_v1.3_mtheli8k.fits
+  path_prior_params: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/prior_psf_sys_SP_v1.3_LFmask_8k.npy
   ra_col: RA
   dec_col: DEC
   e1_psf_col: E1_PSF_HSM
@@ -56,10 +56,10 @@ psf_systematic:
   square_size: False
   hdu: 1
 
-n_noise_real: 1
-rot_ra: [0] #Rotation in RA of the footprint (list included in [0, 1, 2, 3, 4])
-rot_dec: [0] #Rotation in DEC of the footprint (list included in [0, 1, 2, 3, 4])
+n_noise_real: 2
+rot_ra: [0, 1, 2, 3, 4] #Rotation in RA of the footprint (list included in [0, 1, 2, 3, 4])
+rot_dec: [0, 1, 2, 3, 4] #Rotation in DEC of the footprint (list included in [0, 1, 2, 3, 4])
 
 verbose: T
 
-validation_plot: T
+validation_plot: F

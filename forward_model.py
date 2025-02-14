@@ -325,8 +325,10 @@ def add_intrinsic_alignment(gamma_lensing, A_ia, eta_ia, overdensity_array, z_bi
     kappa_ia = intrinsic_alignments(overdensity_array, z_bin_edges, cosmo_params, A_ia, eta_ia)
 
     gamma_ia = kappa2shear(kappa_ia, lmax=lmax, verbose=verbose)
+    del kappa_ia
 
     gamma_lensing += gamma_ia
+    del gamma_ia
 
     return gamma_lensing
 
@@ -366,7 +368,8 @@ def add_shape_noise(shear_map, ra, dec, e1, e2, w):
     theta = (90-dec)*np.pi/180
     phi = ra*np.pi/180
     pix = hp.ang2pix(nside, theta, phi, nest=False)
-
+    del theta, phi
+    
     n_map = np.zeros(hp.nside2npix(nside))
 
     #Get a map between pixels in Healpix and galaxies in the galaxy catalog
@@ -379,6 +382,7 @@ def add_shape_noise(shear_map, ra, dec, e1, e2, w):
 
     #Apply random rotations to e1/2 to erase cosmological signal
     e1_rot, e2_rot = apply_random_rotation(e1, e2)
+    del e1, e2
 
     #noise maps
     noise_map_e1 = np.zeros(hp.nside2npix(nside))

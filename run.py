@@ -2,6 +2,8 @@ import os
 import yaml
 import argparse
 import time
+import copy
+import gc
 
 import numpy as np
 import scipy.stats as stats
@@ -198,7 +200,7 @@ if __name__ == '__main__':
                 if verbose:
                     print(f"[!] Performing the forward model for the rotation of {j*360/5} degrees in RA and {rot_footprint_angle[k]} degrees in DEC...")
                 start_ = time.time()
-                output_ = output.copy()
+                output_ = copy.deepcopy(output)
                 nuisance_parameters = {}
                 gamma_lensing = np.load(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
                 if add_ia == 'T':
@@ -270,7 +272,6 @@ if __name__ == '__main__':
                         if verbose:
                             print("[!] Load the galaxy catalog...")
                         path_cat = config['shape_noise']['path_gal'] 
-                        cat_gal = fits.getdata(path_cat)
                         ra, dec, e1, e2, w = load_sources(path_cat, config['shape_noise'])
 
                         ra, dec, e1, e2 = get_rotation(ra, dec, e1, e2, j, k, verbose)
@@ -350,12 +351,16 @@ if __name__ == '__main__':
                             nuisance_parameters[f'bin_{i+1}'][f'eta'] = eta
                             del sys_map, idx_star
 
+                    del ra, dec, e1, e2, w
+
                         
 
                 output_['nuisance_parameters'] = nuisance_parameters
                 #Save the output
                 np.save(path_output+f'/forward_model_sim{sim_idx:05d}_nside{nside:04d}_rot{j}{k}_noisereal{noise_real}.npy', output_)
+                output_.clear()
                 del output_
+                gc.collect()
                 if verbose:
                     print(f"[!] The forward model for rotation {j}{k} is done.")
                     print(f"[!] The forward model for rotation {j}{k} took {(time.time()-start_)/60:.2f} minutes.")

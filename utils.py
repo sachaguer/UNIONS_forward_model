@@ -224,14 +224,15 @@ def rotate_gals(ras, decs, gammas1, gammas2, rotangle_rad=None, rotangle_dec=Non
         assert rot is not None, "rot or rotangle_rad/dec must be specified."
     # Map (ra, dec) --> (theta, phi)
     if units=="deg":
-        decs_rad = decs * np.pi/180.
-        ras_rad = ras * np.pi/180.
+        decs = decs * np.pi/180.
+        ras = ras * np.pi/180.
         if rotangle_rad is not None:
             rotangle_rad = rotangle_rad * np.pi/180.
         if rotangle_dec is not None:
             rotangle_dec = rotangle_dec * np.pi/180.
-    thetas = np.pi/2. + decs_rad
-    phis = ras_rad
+    thetas = np.pi/2. + decs
+    phis = ras
+    del decs, ras
     
     # Compute rotation angle
     if rot is None:
@@ -240,16 +241,19 @@ def rotate_gals(ras, decs, gammas1, gammas2, rotangle_rad=None, rotangle_dec=Non
         thisrot = rot
     rotatedthetas, rotatedphis = thisrot(thetas,phis, inv=False)
 
-    gamma_rot = (gammas1+1J*gammas2) * np.exp(1J * 2 * thisrot.angle_ref(rotatedthetas, rotatedphis,inv=True))
+    angle_ref = thisrot.angle_ref(rotatedthetas, rotatedphis, inv=True)
+    gamma_rot_1 = gammas1 * np.cos(2*angle_ref) - gammas2 * np.sin(2* angle_ref)
+    gamma_rot_2 = gammas1 * np.sin(2*angle_ref) + gammas2 * np.cos(2*angle_ref)
     
     # Transform back to (ra,dec)
     ra_rot = rotatedphis
     dec_rot = rotatedthetas - np.pi/2.
+    del rotatedphis, rotatedthetas
     if units=="deg":
         dec_rot *= 180./np.pi
         ra_rot *= 180./np.pi
     
-    return ra_rot, dec_rot, gamma_rot.real, gamma_rot.imag
+    return ra_rot, dec_rot, gamma_rot_1, gamma_rot_2
 
 def load_sources(path, config, cat_type='gal'):
     """
@@ -278,21 +282,23 @@ def load_sources(path, config, cat_type='gal'):
 
     data = Table.read(path)
     
-    rac = data[config['ra_col']]
-    dec = data[config['dec_col']]
+    rac = np.array(data[config['ra_col']])
+    dec = np.array(data[config['dec_col']])
     if cat_type == 'gal':
-        weight = data[config['w_col']]
-        e_1 = data[config['e1_col']]
-        e_2 = data[config['e2_col']]
+        weight = np.array(data[config['w_col']])
+        e_1 = np.array(data[config['e1_col']])
+        e_2 = np.array(data[config['e2_col']])
     elif cat_type == 'star':
-        e_1_star = data[config['e1_star_col']]
-        e_2_star = data[config['e2_star_col']]
-        e_1_psf = data[config['e1_psf_col']]
-        e_2_psf = data[config['e2_psf_col']]
-        size_star = data[config['size_star_col']]**2 if config['square_size'] else data[config['size_star_col']]
+        e_1_star = np.array(data[config['e1_star_col']])
+        e_2_star = np.array(data[config['e2_star_col']])
+        e_1_psf = np.array(data[config['e1_psf_col']])
+        e_2_psf = np.array(data[config['e2_psf_col']])
+        size_star = np.array(data[config['size_star_col']])**2 if config['square_size'] else np.array(data[config['size_star_col']])
         size_psf = data[config['size_psf_col']]**2 if config['square_size'] else data[config['size_psf_col']]
     else:
         raise ValueError("cat_type must be 'gal' or 'star'.")
+
+    del data
 
     masks_conditions = [
         lambda rac, dec: (rac < 50),
@@ -309,20 +315,10 @@ def load_sources(path, config, cat_type='gal'):
     for condition, rot_rad, rot_dec in zip(masks_conditions, rotangles_rad, rotangles_dec):
         gal_2_rot = condition(rac, dec)
         if cat_type == 'gal':
-            ra_rot,dec_rot,e_1_rot,e_2_rot = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= rot_rad, rotangle_dec= rot_dec)
-            dec[gal_2_rot] = dec_rot
-            rac[gal_2_rot] = ra_rot
-            e_1[gal_2_rot] = e_1_rot
-            e_2[gal_2_rot] = e_2_rot
+            rac[gal_2_rot], dec[gal_2_rot], e_1[gal_2_rot], e_2[gal_2_rot] = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= rot_rad, rotangle_dec= rot_dec)
         elif cat_type == 'star':
-            ra_rot, dec_rot, e_1_star_rot, e_2_star_rot = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_star[gal_2_rot], gammas2=e_2_star[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
-            _, _, e_1_psf_rot, e_2_psf_rot = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_psf[gal_2_rot], gammas2=e_2_psf[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
-            dec[gal_2_rot] = dec_rot
-            rac[gal_2_rot] = ra_rot
-            e_1_star[gal_2_rot] = e_1_star_rot
-            e_2_star[gal_2_rot] = e_2_star_rot
-            e_1_psf[gal_2_rot] = e_1_psf_rot
-            e_2_psf[gal_2_rot] = e_2_psf_rot
+            _, _, e_1_star[gal_2_rot], e_2_star[gal_2_rot] = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_star[gal_2_rot], gammas2=e_2_star[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
+            rac[gal_2_rot], rac[gal_2_rot], e_1_psf[gal_2_rot], e_2_psf[gal_2_rot] = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_psf[gal_2_rot], gammas2=e_2_psf[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
     
     if cat_type == 'gal':
         return rac,dec,e_1,e_2,weight
