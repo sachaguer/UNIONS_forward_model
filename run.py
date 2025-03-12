@@ -310,6 +310,9 @@ if __name__ == '__main__':
                             start_cls = time.time()
                             kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
                             kappa_bar, _ = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
+                            save_kappa = config['redshift_distribution'].get('save_kappa', 'F')
+                            if save_kappa == 'T':
+                                output_[f'bin_{i+1}']['kappa_weighted'] = kappa_bar
                             cls = hp.anafast([kappa_bar, gamma_bar.real, gamma_bar.imag], pol=True, lmax=2*nside, use_pixel_weights=True)
                             output_[f'bin_{i+1}'][f'cl_FS_gamma'] = cls
                             del kappa_lensing, kappa_bar
