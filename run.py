@@ -14,7 +14,7 @@ from astropy.io import fits
 
 from forward_model import forward, weight_map_w_redshift, add_shape_noise, add_intrinsic_alignment, get_reduced_shear
 from psf_systematic import sample_sys_map
-from utils import rot_footprint_angle, load_sources, get_rotation
+from utils import rot_footprint_angle, load_sources, rotate_map, rotate_map_spin2#, get_rotation
 
 plt.rcParams.update({
     "axes.labelsize": 14,  # Adjust as needed
@@ -203,6 +203,7 @@ if __name__ == '__main__':
                 output_ = copy.deepcopy(output)
                 nuisance_parameters = {}
                 gamma_lensing = np.load(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                gamma_lensing = rotate_map_spin2(gamma_lensing, i, j)
                 if add_ia == 'T':
                     A_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_A_ia'][0], high=config['intrinsic_alignment']['prior_A_ia'][1])
                     eta_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_eta_ia'][0], high=config['intrinsic_alignment']['prior_eta_ia'][1])
@@ -211,6 +212,7 @@ if __name__ == '__main__':
                     nuisance_parameters['A_ia'] = A_ia
                     nuisance_parameters['eta_ia'] = eta_ia
                     overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    overdensity_array = rotate_map(overdensity_array, i, j)
                     gamma_lensing = add_intrinsic_alignment(gamma_lensing, A_ia, eta_ia, overdensity_array, z_bin_edges, cosmo_params, verbose=verbose)
                     del overdensity_array
 
@@ -218,6 +220,7 @@ if __name__ == '__main__':
                     if verbose:
                         print("[!] Compute the reduced shear from the shear and kappa maps...")
                     kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    kappa_lensing = rotate_map(kappa_lensing, i, j)
                     gamma_lensing = get_reduced_shear(gamma_lensing, kappa_lensing)
                     del kappa_lensing
 
@@ -227,6 +230,7 @@ if __name__ == '__main__':
                     if verbose:
                         print("[!] Saving the ray tracing maps...")
                     kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    kappa_lensing = rotate_map(kappa_lensing, i, j)
                     output_['kappa_lensing'] = kappa_lensing
                     del kappa_lensing
                     output_['gamma_lensing'] = gamma_lensing
@@ -274,7 +278,7 @@ if __name__ == '__main__':
                         path_cat = config['shape_noise']['path_gal'] 
                         ra, dec, e1, e2, w = load_sources(path_cat, config['shape_noise'])
 
-                        ra, dec, e1, e2 = get_rotation(ra, dec, e1, e2, j, k, verbose)
+                        # ra, dec, e1, e2 = get_rotation(ra, dec, e1, e2, j, k, verbose)
                     #Compute the shear map weighted by the redshift distribution
                     for i in range(nbins):
                         output_[f'bin_{i+1}'] = {}
@@ -290,6 +294,7 @@ if __name__ == '__main__':
                             dndz = np.interp(z, z_shift, dndz)
                         if b_sc != 0.0:
                             overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                            overdensity_array = rotate_map(overdensity_array, i, j)
                         else:
                             overdensity_array = None
                         gamma_bar, noise_factor = weight_map_w_redshift(gamma_lensing, z_bin_edges, (dndz, z), bias=b_sc, overdensity_array=overdensity_array, verbose=verbose)
@@ -309,6 +314,7 @@ if __name__ == '__main__':
                                 print(f"[!] Computing the cls in bin {i+1}...")
                             start_cls = time.time()
                             kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                            kappa_lensing = rotate_map(kappa_lensing, i, j)
                             kappa_bar, _ = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
                             cls = hp.anafast([kappa_bar, gamma_bar.real, gamma_bar.imag], pol=True, lmax=3*nside, use_pixel_weights=True)
                             output_[f'bin_{i+1}'][f'cl_FS_gamma'] = cls
