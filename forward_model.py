@@ -179,7 +179,7 @@ def preprocessing_cosmogrid(path_sims, path_infos, nside, nside_intermediate=Non
     return overdensity_array, z_bin_edges, cosmo_params
 
 
-def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, bias=0.0, overdensity_array=None, verbose=False):
+def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, window_type='tophat', bias=0.0, overdensity_array=None, verbose=False):
     """
     Weight a map with a given redshift distribution. For now source clustering is not
     taken into account.
@@ -192,6 +192,8 @@ def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, bias=0.0, ov
         Bin edges of the redshift shells.
     redshift_distribution: (np.array, np.array)
         Redshift distribution to be used as weight. The tuple contains dndz and z.
+    window_type: str
+        The type of window used to interpolate between the shells.
     bias: float
         Galaxy bias parameter to be used to compute the source clustering. If 0.0, no source clustering is applied.
     overdensity_array: np.array
@@ -205,12 +207,17 @@ def weight_map_w_redshift(map_, z_bin_edges, redshift_distribution, bias=0.0, ov
         Weighted map.
     """
 
+    assert window_type in ['tophat', 'linear'], "The window type must be `tophat' or `linear'."
+
     if bias != 0.0:
         assert overdensity_array is not None, "Overdensity array is required to compute the source clustering."
 
     dndz, z = redshift_distribution
 
-    weights = glass.shells.tophat_windows(z_bin_edges)
+    if window_type == 'tophat':
+        weights = glass.shells.tophat_windows(z_bin_edges)
+    elif window_type == 'linear':
+        weights = glass.shells.linear_windows(z_bin_edges)
 
     map_bar = np.zeros_like(map_[0])
 

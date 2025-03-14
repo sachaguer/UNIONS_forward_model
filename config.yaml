@@ -25,7 +25,7 @@ redshift_distribution:
   weight_w_redshift: T
   nbins: 1
   path_dndz: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/dndz_SP_A.txt
-  save: T
+  save: F
   save_cl: T
   #m_bias: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/m_bias_prior.txt
   #delta_z: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/delta_z_prior.txt

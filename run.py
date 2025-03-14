@@ -177,7 +177,7 @@ if __name__ == '__main__':
     
     output['config'] = config
     
-    n_noise_real = config.get('n_noise_real', 0)
+    n_noise_real = config.get('n_noise_real', 1)
     rot_ra = config.get('rot_ra', [0])
     rot_dec = config.get('rot_dec', [0])
 
@@ -316,7 +316,10 @@ if __name__ == '__main__':
                             kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
                             kappa_lensing = rotate_map(kappa_lensing, i, j)
                             kappa_bar, _ = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
-                            cls = hp.anafast([kappa_bar, gamma_bar.real, gamma_bar.imag], pol=True, lmax=3*nside, use_pixel_weights=True)
+                            save_kappa = config['redshift_distribution'].get('save_kappa', 'F')
+                            if save_kappa == 'T':
+                                output_[f'bin_{i+1}']['kappa_weighted'] = kappa_bar
+                            cls = hp.anafast([kappa_bar, gamma_bar.real, gamma_bar.imag], pol=True, lmax=2*nside, use_pixel_weights=True)
                             output_[f'bin_{i+1}'][f'cl_FS_gamma'] = cls
                             del kappa_lensing, kappa_bar
                             if verbose:
@@ -344,7 +347,7 @@ if __name__ == '__main__':
                                 output_[f'bin_{i+1}'][f'idx'] = idx_
                                 del masked_shear_map, noise_map, idx_
 
-                        if config['psf_systematic']['add_systematic']:
+                        if config['psf_systematic']['add_systematic'] == 'T':
                             if verbose:
                                 print(f"[!] Adding the PSF systematic error in bin {i+1}...")
                             path_psf = config['psf_systematic']['path_psf']
@@ -357,7 +360,8 @@ if __name__ == '__main__':
                             nuisance_parameters[f'bin_{i+1}'][f'eta'] = eta
                             del sys_map, idx_star
 
-                    del ra, dec, e1, e2, w
+                    if config['shape_noise']['add_shape_noise'] == 'T':
+                        del ra, dec, e1, e2, w
 
                         
 

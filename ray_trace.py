@@ -22,7 +22,7 @@ Author: Sacha Guerrini
 Functions to perform the ray tracing of N-body simulations
 """
 
-def ray_trace_glass(overdensity_array, z_bin_edges, cosmo_params, verbose=False):
+def ray_trace_glass(overdensity_array, z_bin_edges, cosmo_params, window="tophat", verbose=False):
     """
     Return the convergence map at each shell for a given cosmology using GLASS.
 
@@ -63,9 +63,13 @@ def ray_trace_glass(overdensity_array, z_bin_edges, cosmo_params, verbose=False)
     cosmo = Cosmology.from_camb(pars)
 
     kappa_lensing = np.copy(overdensity_array)*0.
-
-    weights = glass.shells.tophat_windows(z_bin_edges)
-
+    
+    if window == "tophat":
+        weights = glass.shells.tophat_windows(z_bin_edges)
+    elif window == "linear":
+        weights = glass.shells.linear_windows(z_bin_edges)
+    else:
+        raise NotImplementedError("Only 'tophat' and 'linear' windows are available.")
     convergence = glass.lensing.MultiPlaneConvergence(cosmo)
 
     if verbose:
