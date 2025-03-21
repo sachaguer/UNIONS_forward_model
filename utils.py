@@ -377,18 +377,28 @@ def get_rotator(rot_i, rot_j, inverse=False):
     if(inverse): thisrot = thisrot.get_inverse()
     return thisrot
 
-def rotate_map(map, rot_i, rot_j, inverse=False):
+def rotate_map(map, rot_i, rot_j, nside=None, inverse=False):
     """Rotate a healpix map of spin 0 using alms"""
+    if(nside is None): nside = np.sqrt(map.shape[-1]//12).astype(int)
     thisrot = get_rotator(rot_i, rot_j, inverse)
-    return thisrot.rotate_map_alm(map)
+    lmax=2*nside
+    result = np.zeros_like(map)
+    for idx in np.ndindex(map.shape[:-1]):
+        # result[*idx] = thisrot.rotate_map_alms(map[*idx])
+        alm = hp.map2alm(map[*idx], lmax=2*nside)
+        rot_alm = thisrot.rotate_alm(alm, lmax=lmax)
+        result[*idx] = hp.alm2map(rot_alm, nside=nside, lmax=lmax)
+    return result
 
 def rotate_map_spin2(map, rot_i, rot_j, nside=None, inverse=False):
     """Rotate a healpix map of spin 2 using alms"""
-    if(nside is None): nside = np.sqrt(map.size//12).astype(int)
+    if(nside is None): nside = np.sqrt(map.shape[-1]//12).astype(int)
     thisrot = get_rotator(rot_i, rot_j, inverse)
     lmax=2*nside
-
-    alm1, alm2 = hp.map2alm_spin([map.real, map.imag], spin=2, lmax=2*nside)
-    rot_alm1, rot_alm2 = thisrot.rotate_alm(alm1, lmax=lmax), thisrot.rotate_alm(alm2, lmax=lmax)
-    r, i = hp.alm2map_spin([rot_alm1, rot_alm2], nside=nside, spin=2, lmax=lmax)
-    return r + i*(1j)
+    result = np.zeros_like(map, dtype=np.complex128)
+    for idx in np.ndindex(map.shape[:-1]):
+        alm1, alm2 = hp.map2alm_spin([map[*idx].real, map[*idx].imag], spin=2, lmax=2*nside)
+        rot_alm1, rot_alm2 = thisrot.rotate_alm(alm1, lmax=lmax), thisrot.rotate_alm(alm2, lmax=lmax)
+        r, i = hp.alm2map_spin([rot_alm1, rot_alm2], nside=nside, spin=2, lmax=lmax)
+        result[*idx] = r + i*(1j)
+    return result

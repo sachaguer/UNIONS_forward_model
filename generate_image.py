@@ -2,7 +2,6 @@
 import numpy as np
 import healpy as hp
 
-from utils import rotate_map_spin2
 
 
 def nested2normal(n, nside):
@@ -31,30 +30,28 @@ def concatenate2(nside, images, blank_pixels=0):
     result = np.concatenate((row1, row2), axis=0)[::-1, ::-1]
     return result[464:660, 199:557]
 
-def get_cells_from_shear_map(nside, map, map_ordering='RING', rot_i=0, rot_j=0):
-    """Returns 12 images of size nside*nside, corresponding to the nside=1 healpix pixels"""
+def get_cells_from_map(nside, map, map_ordering='RING', n_ref=1):
+    """Returns 12 images of size nside*nside, corresponding to the nside=n_ref healpix pixels"""
 
-    # Perform the rotation of the footprint
-    rotated_map = rotate_map_spin2(map, rot_i, rot_j, nside=nside, inverse=True)
-
+    cell_side = nside//n_ref
     # Reorder map in Nested scheme
     if(map_ordering == 'RING'):
-        map_nested = hp.reorder(rotated_map, inp="RING", out="NEST")
+        map_nested = hp.reorder(map, inp="RING", out="NEST")
     elif(map_ordering == 'NEST'):
-        map_nested = rotated_map.copy()
+        map_nested = map.copy()
     else: raise ValueError("map_ordering must be either RING or NEST")
 
-    # Create 12 images
-    im_nested = map_nested.reshape((12, nside*nside))
+    # Create 12*n_ref*n_ref images
+    im_nested = map_nested.reshape((12*n_ref*n_ref, cell_side*cell_side))
 
     # Reorder images in normal ordering
     im = np.zeros_like(im_nested)
-    im[:, nested2normal(np.arange(nside*nside), nside)] = im_nested
+    im[:, nested2normal(np.arange(cell_side*cell_side), cell_side)] = im_nested
     
-    return im.reshape((12, nside, nside))
+    return im.reshape((12*n_ref*n_ref, cell_side, cell_side))
 
-def get_images_from_shear_map(nside, map, rot_i=0, rot_j=0, blank_pixels=0):
+def get_images_from_map(nside, map, blank_pixels=0):
     """returns 2 images from a shear map"""
-    images = get_cells_from_shear_map(nside, map, rot_i=rot_i, rot_j=rot_j)
+    images = get_cells_from_map(nside, map, n_ref=1)
     return concatenate1(nside, images, blank_pixels), concatenate2(nside, images, blank_pixels)
     
