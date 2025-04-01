@@ -14,7 +14,7 @@ from astropy.io import fits
 
 from forward_model import forward, weight_map_w_redshift, add_shape_noise, add_intrinsic_alignment, get_reduced_shear
 from psf_systematic import sample_sys_map
-from utils import rot_footprint_angle, load_sources, rotate_map, rotate_map_spin2#, get_rotation
+from utils import rot_footprint_angle, load_sources, rotate_map, rotate_map_spin2
 
 plt.rcParams.update({
     "axes.labelsize": 14,  # Adjust as needed
@@ -193,25 +193,25 @@ if __name__ == '__main__':
     assert all(rot in range(0, 5) for rot in rot_dec), "The rotation in DEC must be between 0 and 4."
 
     #Iterate on the different rotations of the footprint + noise realisation 
-    for noise_real in range(n_noise_real): #Two different noise realizations
-        for j in rot_ra: #Index for the rotation of the footprint in RA
-            for k in rot_dec: #Index for the roation of the footprint in DEC
-                if verbose:
-                    print(f"[!] Performing the forward model for the rotation of {j*360/5} degrees in RA and {rot_footprint_angle[k]} degrees in DEC...")
-                start_ = time.time()
-                output_ = copy.deepcopy(output)
-                nuisance_parameters = {}
-
-                kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
-                kappa_lensing = rotate_map(kappa_lensing, j, k)
-                np.save(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
-                del kappa_lensing
-                overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
-                overdensity_array = rotate_map(overdensity_array, j, k)
-                np.save(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', overdensity_array)
-                del overdensity_array
-                gamma_lensing = np.load(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
-                gamma_lensing = rotate_map_spin2(gamma_lensing, j, k)
+    for j in rot_ra: #Index for the rotation of the footprint in RA
+        for k in rot_dec: #Index for the roation of the footprint in DEC
+            kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+            kappa_lensing = rotate_map(kappa_lensing, j, k)
+            np.save(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
+            del kappa_lensing
+            overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
+            overdensity_array = rotate_map(overdensity_array, j, k)
+            np.save(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', overdensity_array)
+            del overdensity_array
+            gamma_lensing = np.load(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+            gamma_lensing = rotate_map_spin2(gamma_lensing, j, k)
+            if verbose:
+                print(f"[!] Performing the forward model for the rotation of {j*360/5} degrees in RA and {rot_footprint_angle[k]} degrees in DEC...")
+            start_ = time.time()
+            output_ = copy.deepcopy(output)
+            nuisance_parameters = {}
+            
+            for noise_real in range(n_noise_real): #Two different noise realizations
                 if add_ia == 'T':
                     A_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_A_ia'][0], high=config['intrinsic_alignment']['prior_A_ia'][1])
                     eta_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_eta_ia'][0], high=config['intrinsic_alignment']['prior_eta_ia'][1])
@@ -364,8 +364,6 @@ if __name__ == '__main__':
 
                     if config['shape_noise']['add_shape_noise'] == 'T':
                         del ra, dec, e1, e2, w
-
-                        
 
                 output_['nuisance_parameters'] = nuisance_parameters
                 #Save the output
