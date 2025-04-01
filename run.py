@@ -195,18 +195,10 @@ if __name__ == '__main__':
     #Iterate on the different rotations of the footprint + noise realisation 
     for j in rot_ra: #Index for the rotation of the footprint in RA
         for k in rot_dec: #Index for the roation of the footprint in DEC
-            kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
-            kappa_lensing = rotate_map(kappa_lensing, j, k)
-            np.save(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
-            del kappa_lensing
-            overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
-            overdensity_array = rotate_map(overdensity_array, j, k)
-            np.save(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', overdensity_array)
-            del overdensity_array
-            gamma_lensing = np.load(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
-            gamma_lensing = rotate_map_spin2(gamma_lensing, j, k)
             if verbose:
                 print(f"[!] Performing the forward model for the rotation of {j*360/5} degrees in RA and {rot_footprint_angle[k]} degrees in DEC...")
+            gamma_lensing = np.load(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+            gamma_lensing = rotate_map_spin2(gamma_lensing, j, k)
             
             for noise_real in range(n_noise_real): #Two different noise realizations
                 start_ = time.time()
@@ -219,14 +211,24 @@ if __name__ == '__main__':
                         print("[!] Adding the intrinsic alignment to the shear maps...")
                     nuisance_parameters['A_ia'] = A_ia
                     nuisance_parameters['eta_ia'] = eta_ia
-                    overdensity_array = np.load(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    if os.path.exists(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
+                        overdensity_array = np.load(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    else:
+                        overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                        overdensity_array = rotate_map(overdensity_array, j, k)
+                        np.save(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', overdensity_array)
                     gamma_lensing = add_intrinsic_alignment(gamma_lensing, A_ia, eta_ia, overdensity_array, z_bin_edges, cosmo_params, verbose=verbose)
                     del overdensity_array
 
                 if reduced_shear == 'T':
                     if verbose:
                         print("[!] Compute the reduced shear from the shear and kappa maps...")
-                    kappa_lensing = np.load(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    if os.path.exists(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
+                        kappa_lensing = np.load(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    else:
+                        kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                        kappa_lensing = rotate_map(kappa_lensing, j, k)
+                        np.save(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
                     gamma_lensing = get_reduced_shear(gamma_lensing, kappa_lensing)
                     del kappa_lensing
 
@@ -235,7 +237,12 @@ if __name__ == '__main__':
                 if save_ray_tracing == 'T':
                     if verbose:
                         print("[!] Saving the ray tracing maps...")
-                    kappa_lensing = np.load(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    if os.path.exists(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
+                        kappa_lensing = np.load(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                    else:
+                        kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                        kappa_lensing = rotate_map(kappa_lensing, j, k)
+                        np.save(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
                     output_['kappa_lensing'] = kappa_lensing
                     del kappa_lensing
                     output_['gamma_lensing'] = gamma_lensing
@@ -297,7 +304,12 @@ if __name__ == '__main__':
                             z_shift = z + delta_z
                             dndz = np.interp(z, z_shift, dndz)
                         if b_sc != 0.0:
-                            overdensity_array = np.load(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                            if os.path.exists(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
+                                overdensity_array = np.load(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                            else:
+                                overdensity_array = np.load(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                                overdensity_array = rotate_map(overdensity_array, j, k)
+                                np.save(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', overdensity_array)
                         else:
                             overdensity_array = None
                         gamma_bar, noise_factor = weight_map_w_redshift(gamma_lensing, z_bin_edges, (dndz, z), bias=b_sc, overdensity_array=overdensity_array, verbose=verbose)
@@ -316,7 +328,12 @@ if __name__ == '__main__':
                             if verbose:
                                 print(f"[!] Computing the cls in bin {i+1}...")
                             start_cls = time.time()
-                            kappa_lensing = np.load(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                            if os.path.exists(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
+                                kappa_lensing = np.load(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                            else:
+                                kappa_lensing = np.load(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
+                                kappa_lensing = rotate_map(kappa_lensing, j, k)
+                                np.save(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
                             kappa_bar, _ = weight_map_w_redshift(kappa_lensing, z_bin_edges, (dndz, z), verbose=verbose)
                             save_kappa = config['redshift_distribution'].get('save_kappa', 'F')
                             if save_kappa == 'T':
@@ -378,8 +395,10 @@ if __name__ == '__main__':
     os.remove(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
     os.remove(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
     os.remove(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')     
-    os.remove(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
-    os.remove(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+    if(os.path.exists(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')):
+        os.remove(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+    if os.path.exists(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
+        os.remove(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
     print(f"[!] The forward model for simulation {sim_idx} is done.")
     print(f"[!] The forward model for simulation {sim_idx} took {(time.time()-start)/60:.2f} minutes.")
 
