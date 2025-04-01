@@ -207,11 +207,11 @@ if __name__ == '__main__':
             gamma_lensing = rotate_map_spin2(gamma_lensing, j, k)
             if verbose:
                 print(f"[!] Performing the forward model for the rotation of {j*360/5} degrees in RA and {rot_footprint_angle[k]} degrees in DEC...")
-            start_ = time.time()
-            output_ = copy.deepcopy(output)
-            nuisance_parameters = {}
             
             for noise_real in range(n_noise_real): #Two different noise realizations
+                start_ = time.time()
+                output_ = copy.deepcopy(output)
+                nuisance_parameters = {}
                 if add_ia == 'T':
                     A_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_A_ia'][0], high=config['intrinsic_alignment']['prior_A_ia'][1])
                     eta_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_eta_ia'][0], high=config['intrinsic_alignment']['prior_eta_ia'][1])
