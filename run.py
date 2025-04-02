@@ -391,14 +391,14 @@ if __name__ == '__main__':
                 if verbose:
                     print(f"[!] The forward model for rotation {j}{k} is done.")
                     print(f"[!] The forward model for rotation {j}{k} took {(time.time()-start_)/60:.2f} minutes.")
+            if(os.path.exists(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')):
+                os.remove(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
+            if os.path.exists(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
+                os.remove(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
 
     os.remove(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')
     os.remove(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy')
     os.remove(path_output+f'/gamma_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy')     
-    if(os.path.exists(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')):
-        os.remove(path_output+f'/kappa_lensing_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
-    if os.path.exists(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
-        os.remove(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')
     print(f"[!] The forward model for simulation {sim_idx} is done.")
     print(f"[!] The forward model for simulation {sim_idx} took {(time.time()-start)/60:.2f} minutes.")
 
