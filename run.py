@@ -162,6 +162,7 @@ if __name__ == '__main__':
     kappa_lensing, gamma_lensing, overdensity_array, z_bin_edges, cosmo_params = forward(
         path_sims, path_info, sim_name=sim_name, sim_number=sim_idx, nside=nside, nside_intermediate=nside_intermediate, method=ray_tracing_method, verbose=verbose
     )
+    
     output['cosmo_params'] = cosmo_params
     np.save(path_output+f'/kappa_lensing_sim{sim_idx:05d}_nside{nside:04d}.npy', kappa_lensing)
     np.save(path_output+f'/overdensity_array_sim{sim_idx:05d}_nside{nside:04d}.npy', overdensity_array)
