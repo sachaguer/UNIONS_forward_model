@@ -21,10 +21,10 @@ BASE_CONFIG = "config.yaml"
 RUN_SCRIPT = "run.py"
 
 #Total number of simulations
-NUM_SIMULATIONS = 4
+NUM_SIMULATIONS = 791
 
 #Number of parallel processes
-NUM_CORES = 4
+NUM_CORES = 20
 
 def run_simulation(sim_number):
     """
@@ -58,6 +58,8 @@ def run_simulation(sim_number):
 
 #Distribution simulations among available ranks
 for i in range(rank, NUM_SIMULATIONS, size):
+    if os.path.exists(f'/lustre/fswork/projects/rech/prk/commun/GowerStreetSims/UNIONS_processing/forward_model_sim{i+1:05d}_nside0512_rot44_noisereal1.npy'):
+        continue
     run_simulation(i + 1)
 
 #Finalize MPI

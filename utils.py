@@ -144,7 +144,7 @@ def read_cosmo_params(path_info, sim):
     cosmo_params["m_nu"] = line["m_nu"].values
 
     #Compute the value of A_s knowing the value of sigma_8
-    res = minimize_scalar(sigma8_difference, args=(cosmo_params,), bracket=[np.log(1e-9), np.log(3e-9)], tol=1e-10)
+    res = minimize_scalar(sigma8_difference, args=(cosmo_params,), bounds=[np.log(1e-11), np.log(2e-8)], tol=1e-10)
     cosmo_params["A_s"] = np.exp(res.x)
     return cosmo_params
 
@@ -318,7 +318,7 @@ def load_sources(path, config, cat_type='gal'):
             rac[gal_2_rot], dec[gal_2_rot], e_1[gal_2_rot], e_2[gal_2_rot] = rotate_gals(ras=rac[gal_2_rot],decs=dec[gal_2_rot],gammas1=e_1[gal_2_rot], gammas2=e_2[gal_2_rot],rotangle_rad= rot_rad, rotangle_dec= rot_dec)
         elif cat_type == 'star':
             _, _, e_1_star[gal_2_rot], e_2_star[gal_2_rot] = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_star[gal_2_rot], gammas2=e_2_star[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
-            rac[gal_2_rot], rac[gal_2_rot], e_1_psf[gal_2_rot], e_2_psf[gal_2_rot] = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_psf[gal_2_rot], gammas2=e_2_psf[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
+            rac[gal_2_rot], dec[gal_2_rot], e_1_psf[gal_2_rot], e_2_psf[gal_2_rot] = rotate_gals(ras=rac[gal_2_rot], decs=dec[gal_2_rot], gammas1=e_1_psf[gal_2_rot], gammas2=e_2_psf[gal_2_rot], rotangle_rad=rot_rad, rotangle_dec=rot_dec)
     
     if cat_type == 'gal':
         return rac,dec,e_1,e_2,weight

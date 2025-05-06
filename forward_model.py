@@ -75,21 +75,29 @@ def preprocessing_gower_street(path_sims, path_infos, sim_number, nside, nside_i
     else:
         pbar = zip(infos_redshift["# Step"], infos_redshift["z_far"])
 
+    #Fix a bug for sims 779 to 784 where there are more steps than lightcone
+    n_step = len(infos_redshift["# Step"])
+    step_start = 1
+    get_lightcone = False
     start = time.time()
     for step, z_far in pbar:
-
-        path_exist, path_lightcone = get_path_lightcone(path_sims, sim_number, step)
-
-        if path_exist:
-            lightcone = np.load(path_lightcone)
-            density_i = lightcone/np.mean(lightcone) - 1
-            del lightcone
-            if nside_intermediate is not None:
-                density_i = downgrade_lightcone(density_i, nside_intermediate, verbose=False)
-            density_i = downgrade_lightcone(density_i, nside, verbose=False)
-            overdensity_array.append(density_i)
-
-            z_bin_edges.append(z_far)
+        if step_start > n_step - 100: #Check the step to avoid bugs for sims 779 to 784
+            get_lightcone = True
+        else:
+            step_start += 1
+        if get_lightcone:
+            path_exist, path_lightcone = get_path_lightcone(path_sims, sim_number, step-step_start+1)
+    
+            if path_exist:
+                lightcone = np.load(path_lightcone)
+                density_i = lightcone/np.mean(lightcone) - 1
+                del lightcone
+                if nside_intermediate is not None:
+                    density_i = downgrade_lightcone(density_i, nside_intermediate, verbose=False)
+                density_i = downgrade_lightcone(density_i, nside, verbose=False)
+                overdensity_array.append(density_i)
+    
+                z_bin_edges.append(z_far)
     z_bin_edges.append(0.0)
 
     z_bin_edges = np.array(z_bin_edges[::-1])
