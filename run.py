@@ -11,6 +11,7 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import camb
 from astropy.io import fits
+from scipy.interpolate import interp1d
 
 from forward_model import forward, weight_map_w_redshift, add_shape_noise, add_intrinsic_alignment, get_reduced_shear
 from psf_systematic import sample_sys_map
@@ -206,8 +207,18 @@ if __name__ == '__main__':
                 output_ = copy.deepcopy(output)
                 nuisance_parameters = {}
                 if add_ia == 'T':
-                    A_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_A_ia'][0], high=config['intrinsic_alignment']['prior_A_ia'][1])
-                    eta_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_eta_ia'][0], high=config['intrinsic_alignment']['prior_eta_ia'][1])
+                    prior_A_ia_type = config['intrinsic_alignment'].get('prior_A_ia_type', 'not specified')
+                    if prior_A_ia_type=='uniform':
+                        A_ia = np.random.uniform(low=config['intrinsic_alignment']['prior_A_ia'][0], high=config['intrinsic_alignment']['prior_A_ia'][1])
+                    elif prior_A_ia_type=='gaussian': 
+                        A_ia = np.random.normal(loc=config['intrinsic_alignment']['prior_A_ia'][0], scale=config['intrinsic_alignment']['prior_A_ia'][1])
+                    else:
+                        raise ValueError("The prior type for A_ia is not supported. Please use 'uniform' or 'gaussian'")
+                    prior_eta_ia = config['intrinsic_alignment'].get('prior_eta_ia', None)
+                    if prior_eta_ia is not None:
+                        eta_ia = np.random.uniform(low=prior_eta_ia[0], high=prior_eta_ia[1])
+                    else:
+                        eta_ia = 0.
                     if verbose:
                         print("[!] Adding the intrinsic alignment to the shear maps...")
                     nuisance_parameters['A_ia'] = A_ia
@@ -302,8 +313,10 @@ if __name__ == '__main__':
                             nuisance_parameters[f'bin_{i+1}']['delta_z'] = delta_z
                             if verbose:
                                 print(f"[!] Adding photo-z systematic error of {delta_z} in bin {i+1}...")
-                            z_shift = z + delta_z
-                            dndz = np.interp(z, z_shift, dndz)
+                            z_shift = z + delta_z 
+                            f = interp1d(z, dndz, kind='cubic', fill_value=0.0, bounds_error=False)
+                            dndz = f(z_shift)
+                            dndz /= np.trapz(dndz, z)
                         if b_sc != 0.0:
                             if os.path.exists(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy'):
                                 overdensity_array = np.load(path_output+f'/overdensity_array_rotated_sim{sim_idx:05d}_nside{nside:04d}.npy')

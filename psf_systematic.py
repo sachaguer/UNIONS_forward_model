@@ -103,7 +103,7 @@ def sys_map(psf_cat_path, alpha, beta, eta, nside, config, i=0, j=0):
 
     ra, dec, e1_star, e2_star, e1_psf, e2_psf, size_star, size_psf = load_sources(psf_cat_path, config, cat_type='star')
 
-    ra, dec, e1_star, e2_star, e1_psf, e2_psf = get_rotated_stars(ra, dec, e1_star, e2_star, e1_psf, e2_psf, i, j)
+    #ra, dec, e1_star, e2_star, e1_psf, e2_psf = get_rotated_stars(ra, dec, e1_star, e2_star, e1_psf, e2_psf, i, j)
     
     #Create a map of the stars
     theta = (90 - dec) * np.pi / 180
