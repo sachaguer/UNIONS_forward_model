@@ -74,7 +74,7 @@ def apply_mask(map_, mask):
     assert nside_map == nside_mask, "The nside of the map and the mask must be the same."
     return map_*mask
 
-def sigma8_difference(logAs, cosmo_params):
+def sigma8_difference(logAs, cosmo_params, nside):
     """
     Computes the absolue difference between the sigma8 computed with the input As and the
     target specified in cosmo_params.
@@ -114,11 +114,14 @@ def sigma8_difference(logAs, cosmo_params):
         WantTransfer=True,
         NonLinear=camb.model.NonLinear_both
     )
+    pars.min_l = 1
+    lmax = 2*nside
+    pars.set_for_lmax(lmax)
     results = camb.get_results(pars)
     sigma8 = results.get_sigma8()
     return np.abs(sigma8 - cosmo_params["sigma_8"])
 
-def read_cosmo_params(path_info, sim):
+def read_cosmo_params(path_info, sim, nside):
     """
     Returns a dictionary with the cosmologial parameters used to generate the simulation indexed by sim for the Gower Street simulations.
 
@@ -144,7 +147,7 @@ def read_cosmo_params(path_info, sim):
     cosmo_params["m_nu"] = line["m_nu"].values
 
     #Compute the value of A_s knowing the value of sigma_8
-    res = minimize_scalar(sigma8_difference, args=(cosmo_params,), bounds=[np.log(1e-11), np.log(2e-8)], tol=1e-10)
+    res = minimize_scalar(sigma8_difference, args=(cosmo_params, nside,), bounds=[np.log(1e-11), np.log(2e-8)], tol=1e-10)
     cosmo_params["A_s"] = np.exp(res.x)
     return cosmo_params
 

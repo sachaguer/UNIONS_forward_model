@@ -1,0 +1,12 @@
+*.png
+*.out
+*/.ipynb_checkpoints/
+__pycache__/
+*.html
+notebooks/MLPCompressor
+notebooks/PS_compression
+notebooks/PS_inference
+*.bin
+*.fits
+*.slurm
+*.npy

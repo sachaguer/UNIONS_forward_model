@@ -154,6 +154,8 @@ if __name__ == '__main__':
     nside_intermediate = config['preprocessing'].get('nside_intermediate', None)
     add_ia = config['intrinsic_alignment']['add_ia']
     reduced_shear = config['ray_tracing']['reduced_shear']
+    baryons = config['simulation'].get('baryons', 'F')
+    baryons = (baryons=='T')
 
     if verbose:
         print("[!] Performing the forward model...")
@@ -161,7 +163,7 @@ if __name__ == '__main__':
 
     #Get the shear map after ray tracing from the Gower Street simulations
     kappa_lensing, gamma_lensing, overdensity_array, z_bin_edges, cosmo_params = forward(
-        path_sims, path_info, sim_name=sim_name, sim_number=sim_idx, nside=nside, nside_intermediate=nside_intermediate, method=ray_tracing_method, verbose=verbose
+        path_sims, path_info, sim_name=sim_name, sim_number=sim_idx, nside=nside, nside_intermediate=nside_intermediate, method=ray_tracing_method, verbose=verbose, baryons=baryons
     )
     
     output['cosmo_params'] = cosmo_params

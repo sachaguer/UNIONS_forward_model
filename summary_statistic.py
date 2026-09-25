@@ -52,12 +52,28 @@ def get_pseudo_cls(map_, nside, binning='linear', **kwargs):
 
     pol_factor = kwargs.get('pol_factor', False)
     factor = -1 if pol_factor else 1
-
+    
     ell_eff = b.get_effective_ells()
 
     f_all = nmt.NmtField(mask=(map_ != 0), maps=[map_.real, factor*map_.imag], lmax=b_lmax)
 
-    cl_all = nmt.compute_full_master(f_all, f_all, b)
+    wsp = kwargs.get("wsp", None)
+
+    if wsp is None:
+        wsp = nmt.NmtWorkspace.from_fields(f_all, f_all, b)
+        save_wsp = kwargs.get("save_wsp", None)
+        if save_wsp is not None:
+            wsp.write_to(save_wsp)
+    else:
+        try:
+            wsp = nmt.NmtWorkspace.from_file(wsp)
+        except:
+            wsp_name = wsp
+            wsp = nmt.NmtWorkspace.from_fields(f_all, f_all, b)
+            wsp.write_to(wsp_name)
+
+    cl_coupled = nmt.compute_coupled_cell(f_all, f_all)
+    cl_all = wsp.decouple_cell(cl_coupled)
 
     return ell_eff, cl_all
 

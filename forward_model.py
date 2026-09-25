@@ -56,7 +56,7 @@ def preprocessing_gower_street(path_sims, path_infos, sim_number, nside, nside_i
         print(f"[!] Reading the cosmological parameters...")
     #Read the cosmological parameters
     start = time.time()
-    cosmo_params = read_cosmo_params(path_infos, sim_number)
+    cosmo_params = read_cosmo_params(path_infos, sim_number, nside)
     if verbose:
         print(f"[!] Done in {(time.time()-start)/60:.2f} min.")
 
@@ -110,7 +110,7 @@ def preprocessing_gower_street(path_sims, path_infos, sim_number, nside, nside_i
 
     return overdensity_array, z_bin_edges, cosmo_params
 
-def preprocessing_cosmogrid(path_sims, path_infos, nside, nside_intermediate=None, verbose=False):
+def preprocessing_cosmogrid_fiducial(path_sims, path_infos, sim_number, nside, nside_intermediate=None, verbose=False, baryons=False):
     """
     Preprocess the Cosmogrid simulations to get the convergence maps.
 
@@ -142,41 +142,48 @@ def preprocessing_cosmogrid(path_sims, path_infos, nside, nside_intermediate=Non
 
     meta_info = h5py.File(path_infos, 'r')
     if verbose:
-        print(f"[!] Preprocessing the CosmoGridsV1 simulation...")
+        print(f"[!] Preprocessing the CosmoGridV1 simulation...")
         print(f"[!] Reading the cosmological parameters...")
     #Read the cosmological parameters
     start = time.time()
     cosmo_params = {}
-    cosmo_params['Omega_m'] = meta_info['parameters']['fiducial']['Om'][0]
-    cosmo_params['Omega_b'] = meta_info['parameters']['fiducial']['Ob'][0]
-    cosmo_params['h'] = meta_info['parameters']['fiducial']['H0'][0]/100
-    cosmo_params['n_s'] = meta_info['parameters']['fiducial']['ns'][0]
-    cosmo_params['sigma8'] = meta_info['parameters']['fiducial']['s8'][0]/np.sqrt(cosmo_params['Omega_m']/0.3)
-    cosmo_params['w'] = meta_info['parameters']['fiducial']['w0'][0]
-    cosmo_params['m_nu'] = meta_info['parameters']['fiducial']['m_nu'][0]
-    cosmo_params['As'] = meta_info['parameters']['fiducial']['As'][0]
+    cosmo_params['Omega_m'] = np.array([meta_info['parameters']['fiducial']['Om'][0]])
+    cosmo_params['Omega_b'] = np.array([meta_info['parameters']['fiducial']['Ob'][0]])
+    cosmo_params['h'] = np.array([meta_info['parameters']['fiducial']['H0'][0]/100])
+    cosmo_params['n_s'] = np.array([meta_info['parameters']['fiducial']['ns'][0]])
+    cosmo_params['sigma_8'] = meta_info['parameters']['fiducial']['s8'][0]/np.sqrt(cosmo_params['Omega_m']/0.3)
+    cosmo_params['w'] = np.array([meta_info['parameters']['fiducial']['w0'][0]])
+    cosmo_params['m_nu'] = np.array([meta_info['parameters']['fiducial']['m_nu'][0]])
+    cosmo_params['A_s'] = np.array([meta_info['parameters']['fiducial']['As'][0]])
 
     #Get the overdensity array and shell information
     if verbose:
-        print(f"[!] Extracting overdensity maps and redshift edges for the CosmoGridsV1 simulation...")
+        print(f"[!] Extracting overdensity maps and redshift edges for the CosmoGridV1 simulation...")
     path_ = os.path.join(path_sims, meta_info['parameters']['fiducial']['path_par'][0].decode('utf-8'))
-    path_ = os.path.join(path_, 'run_0000/compressed_shells.npz') #hardcoded
+    if not baryons:
+        path_ = os.path.join(path_, f'run_{str(sim_number).zfill(4)}/compressed_shells.npz')
+    else:
+        path_ = os.path.join(path_, f'run_{str(sim_number).zfill(4)}/baryonified_shells.npz')
     compressed_shells = np.load(path_)
-    overdensity_array = compressed_shells['shells']
-    overdensity_array = overdensity_array/np.mean(overdensity_array, axis=1)[:, None] - 1
-    if nside != hp.npix2nside(len(overdensity_array[0])):
-        overdensity_array_ = overdensity_array.copy()
-        overdensity_array = []
-        for i in tqdm(range(len(overdensity_array_))):
-            map_ = overdensity_array_[i]
-            if nside_intermediate is not None:
-                map_ = downgrade_lightcone(map_, nside_intermediate, verbose=False)
-            map_ = downgrade_lightcone(map_, nside, verbose=False)
-            overdensity_array.append(map_)
-        overdensity_array = np.array(overdensity_array)
-    shell_info = compressed_shells['shell_info']
+    density_array = compressed_shells['shells']
     del compressed_shells
+    mean_density = np.mean(density_array, axis=1)
+    if verbose:
+        print("[!] Compute overdensity array")
+    overdensity_array = []
+    for i in tqdm(range(len(density_array))):
+        overdensity_array_ = density_array[i]/mean_density[i] - 1
+        if nside != hp.npix2nside(len(overdensity_array_)):
+            if nside_intermediate is not None:
+                overdensity_array_ = downgrade_lightcone(overdensity_array_, nside_intermediate, verbose=False)
+            overdensity_array_ = downgrade_lightcone(overdensity_array_, nside, verbose=False)
+        overdensity_array.append(overdensity_array_)
+    overdensity_array = np.array(overdensity_array)
 
+    del overdensity_array_
+    del density_array, mean_density
+
+    shell_info = meta_info['shell_info']['CosmoGrid']['raw']['fiducial']['cosmo_fiducial']
     z_bin_edges = np.concatenate((shell_info['lower_z'], [shell_info['upper_z'][-1]]))
     
     if verbose:
@@ -289,7 +296,7 @@ def forward(path_sims, path_infos, sim_name='GowerStreet', verbose=False, **kwar
     np.array
         Weak lensing map for each redshift shell in healpy format. !!might change!!
     """
-    assert sim_name in ['GowerStreet'], "Invalid simulation name. Only 'GowerStreet' is supported."
+    assert sim_name in ['GowerStreet', 'CosmoGrid'], "Invalid simulation name. Only 'GowerStreet' is supported."
 
     if sim_name == 'GowerStreet':
         #Preprocess the Gower Street simulations
@@ -298,6 +305,14 @@ def forward(path_sims, path_infos, sim_name='GowerStreet', verbose=False, **kwar
         lmax = 2*nside
         nside_intermediate = kwargs.get('nside_intermediate', None)
         overdensity_array, z_bin_edges, cosmo_params = preprocessing_gower_street(path_sims, path_infos, sim_number, nside, nside_intermediate, verbose=verbose)
+    elif sim_name == 'CosmoGrid':
+        #Preprocess the CosmoGrid simulations
+        sim_number = kwargs['sim_number']
+        nside = kwargs['nside']
+        lmax = 2*nside
+        nside_intermediate = kwargs.get('nside_intermediate', None)
+        baryons = kwargs.get("baryons", False)
+        overdensity_array, z_bin_edges, cosmo_params = preprocessing_cosmogrid_fiducial(path_sims, path_infos, sim_number, nside, nside_intermediate, verbose=verbose, baryons=baryons)
 
     method = kwargs.get('method', 'glass')
     #Perform the ray tracing

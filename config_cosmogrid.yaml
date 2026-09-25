@@ -2,24 +2,24 @@
 #The yaml file contains most of the parameters needed to run the pipeline
 
 simulation:
-  path_simulation: /lustre/fsmisc/dataset/GowerStreetSims/
-  path_info: /lustre/fsmisc/dataset/GowerStreetSims/PKDGRAV3_on_DiRAC_DES_330 - Sheet1.csv
-  path_output: /lustre/fswork/projects/rech/prk/commun/GowerStreetSims/
+  path_simulation: /lustre/fsn1/projects/rech/prk/uid35yw/
+  path_info: /lustre/fsn1/projects/rech/prk/uid35yw/CosmoGrid/CosmoGridV1_metainfo.h5
+  path_output: /lustre/fswork/projects/rech/prk/commun/CosmoGrid/N-body/
   sim_number: 3 #The index of the simulation to run (all to run with all simulations)
-  sim_name: GowerStreet #Only GowerStreet is currently supported
+  sim_name: CosmoGrid #Only GowerStreet and CosmoGrid is currently supported
+  baryons: F
 
 preprocessing: #Hyperparameter for the preprocessing step
   nside: 512
-  nside_intermediate: 1024
 
 ray_tracing: #Hyperparameters for the ray-tracing
   method: glass #Currently supports glass and bornraytrace
   save_ray_tracing: F
-  reduced_shear: F
+  reduced_shear: T
 
 intrinsic_alignment:
   add_ia: T
-  prior_A_ia: [0.83, 0.78]
+  prior_A_ia: [0.83, 0.00001]
   prior_A_ia_type: gaussian
 
 redshift_distribution:
@@ -28,9 +28,9 @@ redshift_distribution:
   path_dndz: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/nz_shapepipe_v1.4.5.txt
   save: F
   save_cl: T
-  m_bias: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/m_bias_prior.txt
-  #delta_z: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/delta_z_prior.txt
-  bias_sc: 0.0
+  m_bias: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/m_bias_prior_cosmogrid.txt
+  delta_z: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/delta_z_prior_cosmogrid.txt
+  bias_sc: 1.0
 
 shape_noise:
   add_shape_noise: T
@@ -45,7 +45,7 @@ shape_noise:
 psf_systematic:
   add_systematic: T
   path_psf: /lustre/fsn1/projects/rech/prk/uid35yw/unions_shapepipe_psf_2024_v1.4.a.fits
-  path_prior_params: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/prior_psf_sys_SP_v1.4.5_leak_corr.npy
+  path_prior_params: /lustre/fswork/projects/rech/prk/uid35yw/UNIONS_forward_model/data_utils/prior_psf_sys_SP_v1.4.5_leak_corr_cosmogrid.npy
   ra_col: RA
   dec_col: DEC
   e1_psf_col: E1_PSF_HSM
